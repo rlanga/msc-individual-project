@@ -1,0 +1,26 @@
+** evaluating KV stores **
+- using CAP theorem
+define availability measure
+- replication
+- R/W costs
+- node information maintainted in steady state
+- message complexity in steady state
+- message complexity in inconsistent state
+
+        ** Chord **
+- a scalable protocol for lookup in a dynamic peer-to-peer system with frequent node arrivals and departures
+- Three features that distinguish Chord from many other peer-topeer lookup protocols are its simplicity, provable correctness, and
+provable performance
+- Given a key, maps the key to a node
+- communication cost and state per node scales logarithmically
+- node info: (O logN) nodes
+- lookup: (O logN) messages
+- node changes: (O log2 N) messages
+
+* Key structure
+- no naming structure is imposed
+
+
+        ** Skip Graph **
+Because hashing destroys the ordering on keys, DHT systems do not support queries that seek near matches to a key, or to keys within a given range
+Skip graphs can also be constructed without knowledge of the total number of nodes in advance. In contrast, DHT systems such as Pastry and Chord require a priori knowledge about the size of the system or its keyspace
