@@ -7,10 +7,38 @@ define availability measure
 - message complexity in steady state
 - message complexity in inconsistent state
 
+
+        ** Napster (1999) **
+- first system to recognise that popular content demand can be handled my multiple hosts (peer) instead of central server
+- peer to peer file storage
+- centrilised file search based on lists provided by each peer
+
+
+        ** Gnutella **
+- decentrilized search algorithm
+- searches are flooded across peers with a limited scope.
+	- upon receiving query, peer returns a list of all content matching the query
+- The load on each node grows linearly with the total number of queries, which in turn grows with system size, this approach is clearly not scalable
+
+* Gia? *
+
+
+        ~gen 2~
+
+        ** Tapestry **
+
+
+        ** Pastry **
+
+
+
+        ** CAN **
+
         ** Chord **
 - a scalable protocol for lookup in a dynamic peer-to-peer system with frequent node arrivals and departures
 - Three features that distinguish Chord from many other peer-topeer lookup protocols are its simplicity, provable correctness, and
 provable performance
+- given a node, maps a node IP to an id
 - Given a key, maps the key to a node
 - communication cost and state per node scales logarithmically
 - node info: (O logN) nodes
@@ -19,8 +47,51 @@ provable performance
 
 * Key structure
 - no naming structure is imposed
+- consistent hashing using an m-bit ID (m being possible upper bound on nodes):
+	- node ID is created by hashing the IP address
+	- key id is created by hashing original key
+- assigning keys into node
+	- key is assigned to first node whose ID is equal or the next k (successor)
+	- successors are identified in a clockwise manner
+
+* environment changes
+- node join
+	- keys equal to node assigned to node and successor keys for node are given to node
+- node departure. (pred, self]
+	- all assigned keys are re-assigned to successor
+
+* mitigating adversarial changes
+- intentional hashing of keys to the same ID
+	- use of SHA-1 function. Making a set of colliding keys is believed hard to accomplish thus it is based on "standard hardness assumptions" that each node is responsible for at most 1 + e)K/N keys
+
+
+
+** virtual nodes **
+- a solution to balancing machine load allocation in the node ring
+- each real machine pretends to be many distinct machines. These operate independently in the DHT ring.
+
+* drawbacks [Karger, Ruhl]
+- real node must alocate space for data of each virtual node. More data space. However, this space requirement might be seen as negligable as these p2p structures need logarithmic space per node
+- Network bandwidth as every virtual node must frequently do liveness check on neighbours, replacing neighbours if liveness check fails. Many virtual nodes creates an increase in bandwidth load.
+
+
+
+        ** DHT based protocols **
+* drawbacks
+- churn does cause significant overhead for DHTs. [Chawathe, Ratnasamy]
+	- to preserve the efficiency and correctness of routing, most DHTs require O(log n) repair operations after each failure.
+	- Graceless failures, where a node fails without beforehand informing its neighbors and transferring the relevant state, require more time and work in DHTs to (a) discover the failure and (b) rereplicate the lost data or pointers
+	- If the churn rate is too high, the overhead caused by these repair operations can become substantial and could easily overwhelm nodes with low-bandwidth connections
 
 
         ** Skip Graph **
 Because hashing destroys the ordering on keys, DHT systems do not support queries that seek near matches to a key, or to keys within a given range
 Skip graphs can also be constructed without knowledge of the total number of nodes in advance. In contrast, DHT systems such as Pastry and Chord require a priori knowledge about the size of the system or its keyspace
+
+
+
+        ** alternative load balancing algorithms for p2p systems [Karger, Ruhl] **
+* shortcomings of load balancing
+- “random” partition of the address space to nodes is not completely balanced. Some nodes end up responsible for a larger portion of the addresses and thus receive a larger portion of the randomly distributed items.
+- some applications may preclude the randomization of data items’ addresses. For example, to support range searching in a database application the items may need
+to be placed in a specific order, or even at specific addresses, on the ring. In such cases, we may find the items unevenly distributed in address space, meaning that balancing the address space among nodes does not balance the distribution of items among nodes.
