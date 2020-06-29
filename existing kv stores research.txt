@@ -6,6 +6,7 @@ define availability measure
 - node information maintainted in steady state
 - message complexity in steady state
 - message complexity in inconsistent state
+- evaluate performance against non-actor programming languages?
 
 
         ** Napster (1999) **

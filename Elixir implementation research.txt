@@ -1,0 +1,6 @@
+NIF (Native Implemented Function)
+- can implement existing C functions in Elixir (maybe Rust can be used?)
+* NB: a failure in the C function will bring down the entire VM
+
+:resources
+- "a safe way to return pointers to native data structures from a NIF. A resource object is just a block of memory"
