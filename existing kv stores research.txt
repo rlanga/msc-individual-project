@@ -28,8 +28,44 @@ define availability measure
 
         ~gen 2~
 
-        ** Tapestry **
+        ** Kademlia **
+* uses: Ethereum node peer discovery
+- Configuration information spreads automatically as a side-effect of key lookups
+- Every message a node transmits includes its node ID, permitting the recipient to record the sender’s existence if necessary
+- Kademlia uses parallel, asynchronous queries to avoid timeout delays from failed nodes.
+- 160 bit random keys for node IDs
+- KV pairs are stored on nodes with IDs “close” to the key for some notion of closeness
+- a nodeID-based routing algorithm lets anyone efficiently locate servers near any given target key
+- unlike Chord, Kademlia, in contrast, can send a query to any node within an interval, allowing it to select routes based on latency or even send parallel, asynchronous queries to several equally appropriate nodes
+- To locate nodes near a particular ID, Kademlia uses a single routing algorithm from start to finish.In contrast, other systems use one algorithm to get near the target ID and another for the last few hops
+- node failure seems to be tolerated by the fact that data is stored accross k-buckets
+- exploits the fact that node failures are inversely related to uptime
+- message complexity is "a logarithm" of the network size. if peers join and leave the network rapidly,the lookup structure may never stabilize to a state that enjoys this provably logarithmic bound
+- O(logk n) on average
 
+* design
+- nodes treated as leaves in a binary tree, with each node’s position determined by the shortest unique prefix of its ID.
+- Kademlia protocol ensures that every node knows of at least one node in each of its subtrees, if that subtree contains a node.With this guarantee, any node can locate any other node by its ID
+- To assign key,value pairs to particular nodes, Kademlia relies on a notion of distance between two identifiers. Given two 160-bit identifiers, x and y, Kademlia defines the distance between them as their XOR
+- Like Chord’s clockwise circle metric, XOR is unidirectional which ensures that all lookups for the same key converge along the same path, regardless of the originating node
+
+* node state
+- For each 0 ≤ i < 160, every node keeps a list of {IP address, UDP port, Node ID} triples for nodes of distance between 2i and 2i+1 from itself. (K-Buckets)
+- Each k-bucket is kept sorted by time last seen—leastrecently seen node at the head, most recently seen at the tail.
+- For large values of i, the lists can grow up to size k, where k is a system-wide replication parameter. k is chosen such that any given k nodes are very unlikely to fail within an hour of each other. Allows for nodes to come and go and still have the value available in some node
+- When a Kademlia node receives any message (request or reply) from another node, it updates the appropriate k-bucket for the sender’s node ID
+	- If the sending node already exists in the recipient’s k-bucket, the recipient moves it to the tail of the list.
+	- If the node is not already in the appropriate k-bucket and the bucket has fewer than k entries, then the recipient just inserts the new sender at the tail of the list
+	- If the appropriate k-bucket is full, however, then the recipient pings the k-bucket’s least-recently seen node to decide what to do
+	- If the leastrecently seen node fails to respond, it is evicted from the k-bucket and the new sender inserted at the tail.Otherwise, if the least-recently seen node responds, it is moved to the tail of the list, and the new sender’s contact is discarded
+
+* message protocol
+- consists of four RPCs:
+		- ping:  probes a node to see if it is online
+		- store: instructs a node to store a KV pair for later retrieval
+		- find_node: returns {IP, UDP port, Node ID} triples for the k nodes it knows about closest to the target ID
+		- find_value: behaves like find node except if the RPC recipient has received a store
+RPC for the key, it just returns the stored value
 
         ** Pastry **
 - routing: O(log N)
