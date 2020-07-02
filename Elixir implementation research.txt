@@ -5,4 +5,8 @@ NIF (Native Implemented Function)
 :resources
 - "a safe way to return pointers to native data structures from a NIF. A resource object is just a block of memory"
 
-- send lookup message with original requesting node 
+- send lookup message with original requesting node
+
+* initialisation decisions *
+- bit size will be set when starting up a node as bit size knowledge is a-priori in the network
+- defaiult stabilization interval is 30 seconds [chord-sectn. 6.5]

@@ -29,7 +29,7 @@ define availability measure
         ~gen 2~
 
         ** Kademlia **
-* uses: Ethereum node peer discovery
+* uses: Ethereum node peer discovery, BitTorrent, Swarm, and IPFS
 - Configuration information spreads automatically as a side-effect of key lookups
 - Every message a node transmits includes its node ID, permitting the recipient to record the sender’s existence if necessary
 - Kademlia uses parallel, asynchronous queries to avoid timeout delays from failed nodes.
