@@ -22,7 +22,11 @@ defmodule NodeTest do
 #    assert ChordNode.in_closed_interval?(1, 1, 3) == false
 #  end
 
-  test "node create call works", %{node, node} do
-    assert ChordNode.create()
+#  test "node create call works", %{node, node} do
+#    assert ChordNode.create()
+#  end
+
+  test "closest preceding finger is found" do
+    ChordNode.closest_preceding_finger()
   end
 end

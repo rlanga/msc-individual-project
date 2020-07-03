@@ -14,6 +14,8 @@ defmodule Chord do
 
   """
   def new() do
+    # optional node id
+    # address is mandatory
     {:ok}
   end
 

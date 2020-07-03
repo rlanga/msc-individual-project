@@ -10,3 +10,7 @@ NIF (Native Implemented Function)
 * initialisation decisions *
 - bit size will be set when starting up a node as bit size knowledge is a-priori in the network
 - defaiult stabilization interval is 30 seconds [chord-sectn. 6.5]
+
+- With Node ID, use {nodeName@IPAddress} as some nodes might have the same address. In the case of them being class c addresses
+
+- Keys can be stored in list as list size wont be that big. Lookup should be worst O(2^m)

@@ -1,4 +1,4 @@
 defmodule FingerEntry do
   @moduledoc false
-  defstruct start: nil, interval: [], successor: nil
+  defstruct start: nil, successor: nil
 end
