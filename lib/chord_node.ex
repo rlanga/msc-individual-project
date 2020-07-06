@@ -4,6 +4,7 @@ defmodule ChordNode do
 
 
   use GenServer
+  alias Chord.Transport.Client, as: RemoteNode
 
 #  def start_link(state, opts) do
 #
@@ -33,18 +34,20 @@ defmodule ChordNode do
   def handle_call(:create, state) do
     # predecessor is nil by default in the NodeState struct
     IO.inspect(state)
-    {:reply, :ok, %{state | successor: state.node}}
+    {:reply, :ok, update_successor(state.node, state)}
+  end
+
+  @impl true
+  def handle_call({:join, existing_node}, state) do
+    # predecessor starts as nil by default when NodeState struct is initialised
+    {status, msg} = RemoteNode.find_successor(existing_node)
+    {:reply, :ok, update_successor(msg, state)}
   end
 
   @impl true
   def handle_call({:find_successor, id, sender}, _from, state) do
-#    GenServer.call(_closest, {:find_successor, id, sender})
-    if in_half_closed_interval?(id, state.node.id, state.successor.id) do
-      1 # send state.successor back to sender
-    else
-      2 #Enum.at
-    end
-    {:reply, :ok, state}
+    {status, msg} = find_successor(id, state)
+    {:reply, {:ok, msg}, state}
   end
 
   @impl true
@@ -70,20 +73,34 @@ defmodule ChordNode do
 
   @impl true
   def handle_info(:stabilize, state) do
-    x = state.successor # call find_predecessor on successor
-    if in_closed_interval?(x, state.id, state.successor) do
+    x = RemoteNode.find_predecessor(hd(state.finger))
+    if in_closed_interval?(x, state.id, hd(state.finger)) do
       state = %{state | successor: x}
     end
-    # successor.notify(state.id)
+    RemoteNode.notify(state.node)
 
-    stabilize(state.stabilization_interval)
+    schedule_stabilize(state.stabilization_interval)
     {:noreply, state}
   end
 
-  def find_predecessor(id, state, n \\ state.node) do
+  @impl true
+  def handle_info(:fix_fingers, state) do
+    state = fix_fingers(state)
+    schedule_fix_fingers(state.finger_fix_interval)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:check_predecessor, state) do
+    state = check_predecessor(state)
+    schedule_check_predecessor(state.predecessor_check_interval)
+    {:noreply, state}
+  end
+
+  defp find_predecessor(id, state, n \\ state.node) do
     if in_half_closed_interval?(id, n, n.successor) == false do
       if n == state.node do
-        n = closest_preceding_finger(id, state)
+        n = closest_preceding_node(id, state)
       else
         n = "remote closest preceding finger"
       end
@@ -91,24 +108,63 @@ defmodule ChordNode do
     end
   end
 
+  defp find_successor(id, state) do
+    if in_half_closed_interval?(id, state.node.id, hd(state.finger).id) do
+      hd(state.finger)
+    else
+      n = closest_preceding_node(id, state)
+      RemoteNode.find_successor(n, id)
+    end
+  end
+
   @doc """
-  Implements function from Fig.4 in Chord paper
+  Implements function from Fig.5 in Chord paper
   """
-  def closest_preceding_finger(id, state) do
+  defp closest_preceding_node(id, state) do
     Enum.reverse(state.finger)
     |> Enum.find(state.node, fn f -> in_half_closed_interval?(f.start, state.node.id, id) end)
   end
 
-  defp stabilize(interval) do
+  defp schedule_stabilize(interval) do
     Process.send_after(self(), :stabilize, interval)
   end
 
-  defp fix_finger(state, next \\ 0) do
+  defp schedule_fix_fingers(interval) do
+    Process.send_after(self(), :fix_fingers, interval)
+  end
+
+  defp schedule_check_predecessor(interval) do
+    Process.send_after(self(), :check_predecessor, interval)
+  end
+
+  defp fix_fingers(state, next \\ 0) do
     next = next + 1
     if next > state.bit_size do
       next = 1
     end
     # finger[next] = find_successor
+    {status, resp} = RemoteNode.find_successor(state.node.id + (:math.pow(2, next-1) |> round))
+    updated_finger_table = List.replace_at(state.finger, next, resp)
+    state = %{state | finger: updated_finger_table}
+  end
+
+  @doc """
+  Update the successor node with the new node value
+  n.b: successor == finger[0]
+  """
+  defp update_successor(n, state) do
+    %{state | finger: List.replace_at(state.finger, 0, n)}
+  end
+
+  @doc """
+  Called periodically. checks whether predecessor has failed
+  """
+  defp check_predecessor(state) do
+    {result, msg} = RemoteNode.ping(state.predecessor)
+    if result != :ok do
+      state = %{state | predecessor: nil}
+    end
+    state
   end
 
   defp in_closed_interval?(val, a, b) do
