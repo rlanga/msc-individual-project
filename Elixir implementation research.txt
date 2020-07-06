@@ -5,6 +5,9 @@ NIF (Native Implemented Function)
 :resources
 - "a safe way to return pointers to native data structures from a NIF. A resource object is just a block of memory"
 
+:oberver.start
+- observe BEAM state in iex
+
 - send lookup message with original requesting node
 
 * initialisation decisions *
@@ -14,3 +17,16 @@ NIF (Native Implemented Function)
 - With Node ID, use {nodeName@IPAddress} as some nodes might have the same address. In the case of them being class c addresses
 
 - Keys can be stored in list as list size wont be that big. Lookup should be worst O(2^m)
+
+* inter-node communication *
+- options:
+	- gRPC
+	- JSON-RPC
+
+- can use JSON-RPC TCP to detect when connections go down
+- using HTTP(S) means connections don't have to remain open as number of open connections can scale to size m where m is bit-size
+
+- why RPC over REST?
+	- REST exposes data as resources to be acted upon, whereas RPC exposes operations as a method for acting upon data [nodricapis]
+
+- using JSON-RPC as Elixir gRPC libraries are not yet that mature
