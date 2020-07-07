@@ -16,6 +16,8 @@ defmodule Chord do
   def new() do
     # optional node id
     # address is mandatory
+    # if address is not specified, use localhost
+    # id must be a string
     {:ok}
   end
 
