@@ -4,7 +4,7 @@ defmodule Transport.Client do
 
   @spec ping(CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
   def ping(n) do
-    {resp, _} = HTTP.call(n.address, "ping", [])
+    {resp, _} = HTTP.call(n.address, "ping", [n.id])
     if resp == :ok do
       {:ok, "Peer #{n.id} still up"}
     else
@@ -14,7 +14,7 @@ defmodule Transport.Client do
 
   @spec notify(CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
   def notify(n) do
-    {resp, _} = HTTP.call(n.address, "notify", [])
+    {resp, _} = HTTP.call(n.address, "notify", [n.id])
     if resp == :ok do
       {:ok, "Peer #{n.id} notified"}
     else
@@ -24,7 +24,7 @@ defmodule Transport.Client do
 
   @spec find_successor(CNode.t(), integer) :: {:ok, CNode.t()} | {:error, String.t()}
   def find_successor(n, id) do
-    {resp, msg} = HTTP.call(n.address, "find_successor", [id])
+    {resp, msg} = HTTP.call(n.address, "find_successor", [id, n.id])
     if resp == :ok do
       {:ok, msg}
     else
@@ -35,7 +35,7 @@ defmodule Transport.Client do
 
   @spec predecessor(CNode.t()) :: {:ok, CNode.t()} | {:error, String.t()}
   def predecessor(n) do
-    {resp, msg} = HTTP.call(n.address, "predecessor", [])
+    {resp, msg} = HTTP.call(n.address, "predecessor", [n.id])
     if resp == :ok do
       {:ok, msg}
     else

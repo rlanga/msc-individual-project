@@ -14,19 +14,12 @@ defmodule ChordNode do
   """
   @impl true
   def init(args) do
-    state = %NodeState{}
+    state = %NodeState{node: %CNode{id: args.id, address: args.addr}}
 
-    nid = if Map.has_key?(args, :id) do
-      args.id
-    else
-      args.addr
-    end
-    state = %{state | node: %CNode{id: generate_hash(nid), address: args.addr}}
-
-#    Process.register(self(), String.to_atom("Node_#{state.node.id}"))
+    Process.register(self(), String.to_atom("Node_#{state.node.id}"))
 #    transport_spec = JSONRPC2.Servers.HTTP.child_spec(:http, Transport.Server, [port: args.port])
 #    Supervisor.start_link(transport_spec, strategy: :one_for_one)
-    StateAgent.put(:chord_node_ref, self())
+#    StateAgent.put(:chord_node_ref, self())
 
     # Schedule stabilization task to be done later on
     schedule_stabilize(state.stabilization_interval)
@@ -36,7 +29,7 @@ defmodule ChordNode do
   @impl true
   def handle_call(:create, _from, state) do
     # predecessor is nil by default in the NodeState struct
-    {:reply, :ok, %{state | finger: [state.node]}}
+    {:reply, :ok, update_successor(state.node, state)}
   end
 
   @impl true
@@ -44,23 +37,29 @@ defmodule ChordNode do
     # predecessor starts as nil by default when NodeState struct is initialised
     {status, msg} = RemoteNode.find_successor(existing_node, state.node.id)
     if status == :ok do
-      {:reply, :ok, update_successor(msg, state)}
+      new_successor = if msg["id"] < state.node.id do
+        state.node
+      else
+        msg
+      end
+      {:reply, :ok, update_successor(new_successor, state)}
     else
       {:reply, {status, msg}, state}
     end
   end
 
   @impl true
-  def handle_call({:find_successor, id}, _from, state) do
-    IO.inspect("sdfjh #{state.node.address}")
-    res = find_successor(id, state)
-    {:reply, res, state}
+  def handle_cast({:find_successor, id, sender}, state) do
+    IO.inspect("sdfjh #{state.node.id}")
+    result = find_successor(id, state)
+    send(sender, {:res, result})
+    {:noreply, state}
   end
 
   @impl true
   def handle_call({:predecessor}, _from, state) do
     #    GenServer.call(_closest, {:find_successor, id, sender})
-    {:reply, hd(state.finger), state}
+    {:reply, state.finger[1], state}
   end
 
 #  def handle_call({:closest_preceding_finger, id}, _from, state) do
@@ -82,9 +81,9 @@ defmodule ChordNode do
 
   @impl true
   def handle_info(:stabilize, state) do
-    x = RemoteNode.predecessor(state.predecessor)
-    state = if in_closed_interval?(x, state.id, hd(state.finger)) do
-        %{state | successor: x}
+    x = RemoteNode.predecessor(state.finger[1])
+    state = if in_closed_interval?(x, state.id, state.finger[1]) do
+        update_successor(x, state)
       else
         state
     end
@@ -120,24 +119,43 @@ defmodule ChordNode do
 #  end
 
   defp find_successor(id, state) do
+    IO.inspect("#{state.node.id} #{state.finger[1].id}")
     cond do
-      in_half_closed_interval?(id, state.node.id, hd(state.finger).id) ->
-        hd(state.finger)
+      in_half_closed_interval?(id, state.node.id, state.finger[1].id) ->
+        IO.inspect("yesyes")
+        state.finger[1]
       id < state.node.id ->
-        hd(state.finger)
+        IO.inspect("yesyes")
+        state.finger[1]
       true ->
         n = closest_preceding_node(id, state)
-        IO.inspect(n)
-        RemoteNode.find_successor(n, id)
+
+        # This prevents a remote call looping back
+        if n.id == state.node.id do
+          n
+        else
+          RemoteNode.find_successor(n, id)
+        end
     end
   end
 
   @doc """
   Implements function from Fig.5 in Chord paper
   """
-  defp closest_preceding_node(id, state) do
-    Enum.reverse(state.finger)
-    |> Enum.find(state.node, fn f -> in_half_closed_interval?(f.id, state.node.id, id) end)
+#  defp closest_preceding_node(id, state) do
+#    Map.keys(state.finger)
+#    |> Enum.reverse()
+#    |> Enum.find(state.node, fn f -> in_half_closed_interval?(f.id, state.node.id, id) end)
+#  end
+  defp closest_preceding_node(id, state, 0), do: state.node
+  defp closest_preceding_node(id, state, i \\ -1) do
+    i = if(i == -1, do: state.bit_size, else: i)
+
+    if Map.has_key?(state.finger, i) and in_closed_interval?(state.finger[i].id, state.node.id, id) do
+      state.finger[i]
+    else
+      closest_preceding_node(id, state, i-1)
+    end
   end
 
   defp schedule_stabilize(interval) do
@@ -161,16 +179,16 @@ defmodule ChordNode do
     end
     # finger[next] = find_successor
     {status, resp} = find_successor(state.node.id + (:math.pow(2, next-1) |> round), state)
-    updated_finger_table = List.replace_at(state.finger, next, resp)
+    updated_finger_table = %{state.finger | next => resp}
     %{state | finger: updated_finger_table, next_fix_finger: next}
   end
 
   @doc """
   Update the successor node with the new node value
-  n.b: successor == finger[0]
+  n.b: successor == finger[1]
   """
   defp update_successor(n, state) do
-    %{state | finger: List.replace_at(state.finger, 0, n)}
+    %{state | finger: %{state.finger | 1 => n}}
   end
 
   @doc """
@@ -193,16 +211,6 @@ defmodule ChordNode do
   Checks a value is in a half-closed interval (a,b]
   """
   defp in_half_closed_interval?(val, a, b) do
-    val > a and val <= b
-  end
-
-  @doc """
-  Performs the consistent hashing function using SHA-1
-  """
-  def generate_hash(data) do
-    :crypto.hash(:sha, data)
-    |> Base.encode16
-    |> Integer.parse(16)
-    |> elem(0)
+    in_closed_interval?(val, a, b) and val <= b
   end
 end

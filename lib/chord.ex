@@ -9,22 +9,37 @@ defmodule Chord do
 
   ## Examples
 
-      iex> Chord.new()
+      iex> Chord.new(%{id: 1, addr: "localhost:4000"})
       {:ok}
 
   """
-  def new() do
+  def new(args) do
     # optional node id
     # address is mandatory
     # if address is not specified, use localhost
     # id must be a string
+    nid = if Map.has_key?(args, :id) do
+      args.id
+    else
+      args.addr
+    end
     {:ok}
   end
 
   @doc """
   Join an existing Chord network from an existing node
   """
-  def join(existing_node) do
+  def join(address) do
 
+  end
+
+  @doc """
+  Performs the consistent hashing function using SHA-1
+  """
+  def generate_hash(data) do
+    :crypto.hash(:sha, data)
+    |> Base.encode16
+    |> Integer.parse(16)
+    |> elem(0)
   end
 end

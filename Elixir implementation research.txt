@@ -30,3 +30,11 @@ NIF (Native Implemented Function)
 	- REST exposes data as resources to be acted upon, whereas RPC exposes operations as a method for acting upon data [nodricapis]
 
 - using JSON-RPC as Elixir gRPC libraries are not yet that mature
+
+
+        *** challenges faced ***
+- finger table can't be implemented as list as Elixir lists are linked lists under the hood. Meaning a sparse list can't be generated. Instead a map has been used where an existing key check can be done
+- Linking a transport server to a node. How does transport pass request to appropriate node
+	- maybe use Agent to map server -> node
+	- Due to difficulty mapping an individual transport process to a node, A physical machine will have one transport process shared amongst 1-* node processes. The issue was a limitation in the JSONRPC2 library in that it doesn't have an option to pass some initial state to the server process.
+- GenServer calls will have to be non-blocking. So use GenServer.cast as a request waiting on other remote calls will block other incoming ones

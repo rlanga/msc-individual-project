@@ -4,6 +4,6 @@ defmodule ChordTest do
 
   @tag :pending
   test "creates new Chord network" do
-    assert Chord.new() == {:ok}
+    assert Chord.new(%{id: 1}) == {:ok}
   end
 end

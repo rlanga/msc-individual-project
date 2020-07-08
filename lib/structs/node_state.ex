@@ -3,7 +3,7 @@ defmodule NodeState do
   defstruct node: nil,
             predecessor: nil,
             successor: nil,
-            finger: [],
+            finger: %{1 => nil},
             keys: [],
             stabilization_interval: 30 * 1000, # 30 seconds
             finger_fix_interval: 30 * 1000, # 30 seconds
