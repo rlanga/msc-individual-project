@@ -33,13 +33,4 @@ defmodule Chord do
 
   end
 
-  @doc """
-  Performs the consistent hashing function using SHA-1
-  """
-  def generate_hash(data) do
-    :crypto.hash(:sha, data)
-    |> Base.encode16
-    |> Integer.parse(16)
-    |> elem(0)
-  end
 end

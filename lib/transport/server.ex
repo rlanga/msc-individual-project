@@ -2,16 +2,13 @@ defmodule Transport.Server do
   @moduledoc false
   use JSONRPC2.Server.Handler
 
-  def handle_request("find_successor", [node_id, destination_node]) do
+  def handle_request("find_successor", [nd, destination_node]) do
     IO.inspect("inserv #{destination_node}")
-    GenServer.cast(String.to_atom("Node_#{destination_node}"), {:find_successor, node_id, self()})
-    receive do
-      {:res, val} -> val
-    end
+    GenServer.call(String.to_atom("Node_#{destination_node}"), {:find_successor, %CNode{id: nd["id"], address: nd["address"]}})
   end
 
   def handle_request("notify", [chord_node, destination_node]) do
-    GenServer.call(String.to_atom("Node_#{destination_node}"), {:notify, chord_node})
+    GenServer.cast(String.to_atom("Node_#{destination_node}"), {:notify, %CNode{id: chord_node["id"], address: chord_node["address"]}})
     "notified"
   end
 
@@ -23,5 +20,15 @@ defmodule Transport.Server do
     GenServer.call(String.to_atom("Node_#{destination_node}"), {:predecessor})
   end
 
+  def handle_request("get", [key, destination_node]) do
+    GenServer.call(String.to_atom("Node_#{destination_node}"), {:get, key})
+  end
 
+  def handle_request("put", [record, destination_node]) do
+    GenServer.call(String.to_atom("Node_#{destination_node}"), {:put, record})
+  end
+
+  def handle_request("notify_departure", [n, pred, succ, destination_node]) do
+    GenServer.cast(String.to_atom("Node_#{destination_node}"), {:notify_departure, n, pred, succ})
+  end
 end

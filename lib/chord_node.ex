@@ -1,6 +1,8 @@
 defmodule ChordNode do
   use GenServer
+  import Utils
   alias Transport.Client, as: RemoteNode
+  use Storage
   @moduledoc false
 
 
@@ -14,9 +16,10 @@ defmodule ChordNode do
   """
   @impl true
   def init(args) do
-    state = %NodeState{node: %CNode{id: args.id, address: args.addr}}
+    node_name = String.to_atom("Node_#{state.node.id}")
+    state = %NodeState{node: %CNode{id: args.id, address: args.addr}, storage_ref: Storage.init(node_name)}
 
-    Process.register(self(), String.to_atom("Node_#{state.node.id}"))
+    Process.register(self(), node_name)
 #    transport_spec = JSONRPC2.Servers.HTTP.child_spec(:http, Transport.Server, [port: args.port])
 #    Supervisor.start_link(transport_spec, strategy: :one_for_one)
 #    StateAgent.put(:chord_node_ref, self())
@@ -27,21 +30,41 @@ defmodule ChordNode do
   end
 
   @impl true
+  def terminate(reason, state) do
+    if state.finger[1] != state.node do
+      # transfer keys to successor
+      records = Storage.get_all(state.storage_ref)
+      if length(records) > 0 do
+        RemoteNode.put(state.finger[1], records)
+        Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
+      end
+      RemoteNode.notify_departure(state.finger[1], state.node, state.predecessor, state.finger[1])
+    end
+    if state.predecessor != nil do
+      RemoteNode.notify_departure(state.predecessor, state.node, state.predecessor, state.finger[1])
+    end
+  end
+
+  @impl true
   def handle_call(:create, _from, state) do
     # predecessor is nil by default in the NodeState struct
-    {:reply, :ok, update_successor(state.node, state)}
+    state = %{state | predecessor: state.node, successor: state.node}
+    {:reply, :ok, state}
   end
 
   @impl true
   def handle_call({:join, existing_node}, _from, state) do
     # predecessor starts as nil by default when NodeState struct is initialised
-    {status, msg} = RemoteNode.find_successor(existing_node, state.node.id)
+    {status, msg} = RemoteNode.find_successor(existing_node, state.node)
     if status == :ok do
       new_successor = if msg["id"] < state.node.id do
         state.node
       else
         msg
       end
+      IO.inspect("new successor for #{state.node.id} #{new_successor["id"]}")
+      # tell remote that this node might be it's predecessor
+#      if existing_node.id < state.node.id, do: RemoteNode.notify(nd, state.node)
       {:reply, :ok, update_successor(new_successor, state)}
     else
       {:reply, {status, msg}, state}
@@ -49,17 +72,46 @@ defmodule ChordNode do
   end
 
   @impl true
-  def handle_cast({:find_successor, id, sender}, state) do
-    IO.inspect("sdfjh #{state.node.id}")
-    result = find_successor(id, state)
-    send(sender, {:res, result})
-    {:noreply, state}
+  def handle_call({:find_successor, nd}, _from, state) do
+    IO.inspect("sdfjh #{state.node.id} #{nd.id}")
+    result = find_successor(nd, state)
+    {:reply, result, state}
   end
 
   @impl true
   def handle_call({:predecessor}, _from, state) do
-    #    GenServer.call(_closest, {:find_successor, id, sender})
-    {:reply, state.finger[1], state}
+    {:reply, state.predecessor, state}
+  end
+
+  @impl true
+  def handle_call({:get, key}, _from, state) do
+    case generate_hash(key) do
+      state.node.id ->
+        {:reply, Storage.get(state.storage_ref, key), state}
+      state.predecessor.id when state.predecessor != nil ->
+        res = RemoteNode.get(state.predecessor, key)
+        {:reply, res, state}
+      k ->
+        succ = find_successor(k, state)
+        res = RemoteNode.get(succ, key)
+        {:reply, res, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:put, record}, _from, state) do
+    case generate_hash(elem(record, 0)) do
+      state.node.id ->
+        Storage.put(state.storage_ref, record)
+        {:reply, :ok, state}
+      state.predecessor.id when state.predecessor != nil ->
+        RemoteNode.put(state.predecessor, record)
+        {:reply, :ok, state}
+      k ->
+        succ = find_successor(k, state)
+        RemoteNode.put(succ, record)
+        {:reply, :ok, state}
+    end
   end
 
 #  def handle_call({:closest_preceding_finger, id}, _from, state) do
@@ -70,13 +122,26 @@ defmodule ChordNode do
 
   # Handles message from n as n thinks it might be our predecessor.
   @impl true
-  def handle_call({:notify, n}, _from, state) do
-    state = if state.predecessor == nil or in_closed_interval?(n.id, state.predecessor.id, state.node.id) do
+  def handle_cast({:notify, n}, state) do
+    IO.inspect("notif #{n.id} #{state.node.id}")
+    state = if state.predecessor == nil or in_closed_interval?(n["id"], state.predecessor.id, state.node.id) do
         %{state | predecessor: n}
       else
         state
     end
-    {:reply, :ok, state}
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:notify_departure, n, pred, succ}, state) do
+    case n do
+      state.node.id > n.id ->
+        # departing node is predecessor
+        {:noreply, %{state | predecessor: pred}}
+      _ ->
+        # departing node is successor
+        {:noreply, update_successor(succ, state)}
+    end
   end
 
   @impl true
@@ -87,7 +152,7 @@ defmodule ChordNode do
       else
         state
     end
-    RemoteNode.notify(state.node)
+    RemoteNode.notify(state.finger[1], state.node)
 
     schedule_stabilize(state.stabilization_interval)
     {:noreply, state}
@@ -118,23 +183,23 @@ defmodule ChordNode do
 #    end
 #  end
 
-  defp find_successor(id, state) do
+  defp find_successor(nd, state) do
     IO.inspect("#{state.node.id} #{state.finger[1].id}")
     cond do
-      in_half_closed_interval?(id, state.node.id, state.finger[1].id) ->
+      in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
         IO.inspect("yesyes")
         state.finger[1]
-      id < state.node.id ->
+      nd < state.node.id ->
         IO.inspect("yesyes")
         state.finger[1]
       true ->
-        n = closest_preceding_node(id, state)
+        n = closest_preceding_node(nd.id, state)
 
         # This prevents a remote call looping back
         if n.id == state.node.id do
-          n
+          nd
         else
-          RemoteNode.find_successor(n, id)
+          RemoteNode.find_successor(n, nd)
         end
     end
   end
@@ -188,7 +253,12 @@ defmodule ChordNode do
   n.b: successor == finger[1]
   """
   defp update_successor(n, state) do
-    %{state | finger: %{state.finger | 1 => n}}
+    res = if is_struct(n) do
+      n
+    else
+      %CNode{id: n["id"], address: n["address"]}
+    end
+    %{state | finger: %{state.finger | 1 => res}}
   end
 
   @doc """
@@ -203,14 +273,4 @@ defmodule ChordNode do
     end
   end
 
-  defp in_closed_interval?(val, a, b) do
-    val > a and val < b
-  end
-
-  @doc """
-  Checks a value is in a half-closed interval (a,b]
-  """
-  defp in_half_closed_interval?(val, a, b) do
-    in_closed_interval?(val, a, b) and val <= b
-  end
 end

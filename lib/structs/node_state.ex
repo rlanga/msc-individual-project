@@ -5,6 +5,7 @@ defmodule NodeState do
             successor: nil,
             finger: %{1 => nil},
             keys: [],
+            storage_ref: nil,
             stabilization_interval: 30 * 1000, # 30 seconds
             finger_fix_interval: 30 * 1000, # 30 seconds
             predecessor_check_interval: 30 * 1000, # 30 seconds

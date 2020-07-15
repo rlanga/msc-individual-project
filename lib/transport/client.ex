@@ -12,9 +12,9 @@ defmodule Transport.Client do
     end
   end
 
-  @spec notify(CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
-  def notify(n) do
-    {resp, _} = HTTP.call(n.address, "notify", [n.id])
+  @spec notify(CNode.t(), CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def notify(n, pred) do
+    {resp, _} = HTTP.call(n.address, "notify", [pred, n.id])
     if resp == :ok do
       {:ok, "Peer #{n.id} notified"}
     else
@@ -40,6 +40,36 @@ defmodule Transport.Client do
       {:ok, msg}
     else
       {:error, "predecessor search failed at #{n.id}"}
+    end
+  end
+
+  @spec get(CNode.t(), String.t()) :: {:ok, any()} | {:error, String.t()}
+  def get(n, key) do
+    {resp, msg} = HTTP.call(n.address, "get", [key, n.id])
+    if resp == :ok do
+      {:ok, msg}
+    else
+      {:error, "Get operation from #{n.id} failed"}
+    end
+  end
+
+  @spec put(CNode.t(), tuple) :: {:ok, any()} | {:error, String.t()}
+  def put(n, record) do
+    {resp, msg} = HTTP.call(n.address, "put", [record, n.id])
+    if resp == :ok do
+      {:ok, msg}
+    else
+      {:error, "Put operation to #{n.id} failed"}
+    end
+  end
+
+  @spec notify_departure(CNode.t(), CNode.t(), CNode.t()) :: {:ok, any()} | {:error, String.t()}
+  def notify_departure(dest, n, pred, succ) do
+    {resp, msg} = HTTP.call(dest.address, "notify_departure", [n, pred, succ, dest.id])
+    if resp == :ok do
+      {:ok, msg}
+    else
+      {:error, "Departure notification to #{dest.id} failed"}
     end
   end
 

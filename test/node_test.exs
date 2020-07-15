@@ -8,9 +8,9 @@ defmodule NodeTest do
 
     addr = "http://localhost:#{port}"
     nid = if id == "" do
-      Chord.generate_hash(addr)
+      Utils.generate_hash(addr)
     else
-       Chord.generate_hash(id)
+       Utils.generate_hash(id)
     end
     spec = %{id: Enum.random(1..10_000), start: {ChordNode, :start_link, [%{id: nid, addr: addr}]}}
     {start_supervised!(spec), nid}
@@ -31,7 +31,7 @@ defmodule NodeTest do
               {:DOWN, ^ref, :process, ^tid, :shutdown} -> :ok
             end
     end)
-    %{node: nid, node_details: %CNode{id: Chord.generate_hash("1"), address: "http://localhost:#{port}"}, port: port}
+    %{node: nid, node_details: %CNode{id: Utils.generate_hash("1"), address: "http://localhost:#{port}"}, port: port}
   end
 
   @moduletag :capture_log
@@ -55,7 +55,7 @@ defmodule NodeTest do
 
   test "notifying other node works", %{node_details: cnode, port: port} do
     {new_node, _} = start_node(port, "2")
-    assert GenServer.call(new_node, {:notify, cnode}) == :ok
+    assert GenServer.cast(new_node, {:notify, cnode}) == :ok
   end
 
 #  test "predecessor check works", %{node: pid} do
@@ -68,17 +68,25 @@ defmodule NodeTest do
   end
 
   test "node successor is itself", %{node: pid, node_details: cnode} do
-    GenServer.cast(pid, {:find_successor, cnode.id, self()})
-    receive do
-      {:res, val} -> assert val == cnode
-    end
+    assert GenServer.call(pid, {:find_successor, cnode}) == cnode
   end
 
-  test "node successor is itself if it\'s ID larger than other node", %{node: pid, node_details: cnode, port: port} do
+  test "node successor is itself if it\'s ID larger than other node", %{node_details: cnode, port: port} do
     {new_node, nid} = start_node(port, "2")
-    GenServer.cast(new_node, {:find_successor, nid, self()})
-    receive do
-      {:res, val} -> assert val == %CNode{id: nid, address: cnode.address}
-    end
+    cnode2 = %CNode{id: nid, address: cnode.address}
+    GenServer.call(new_node, {:join, cnode})
+    assert GenServer.call(new_node, {:find_successor, cnode2}) == cnode2
+  end
+
+  test "node successor is node with larger ID", %{node: pid, node_details: cnode, port: port} do
+    {new_node, nid} = start_node(port, "2")
+    GenServer.call(new_node, {:join, cnode})
+    assert GenServer.call(pid, {:find_successor, cnode}) == %CNode{id: nid, address: cnode.address}
+  end
+
+  test "node successor is node with larger ID", %{node: pid, node_details: cnode, port: port} do
+    {new_node, nid} = start_node(port, "2")
+    GenServer.call(new_node, {:join, cnode})
+    assert GenServer.call(pid, {:find_successor, cnode}) == %CNode{id: nid, address: cnode.address}
   end
 end
