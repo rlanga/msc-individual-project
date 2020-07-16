@@ -4,11 +4,9 @@ defmodule Transport.Client do
 
   @spec ping(CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
   def ping(n) do
-    {resp, _} = HTTP.call(n.address, "ping", [n.id])
-    if resp == :ok do
-      {:ok, "Peer #{n.id} still up"}
-    else
-      {:error, "Peer #{n.id} down"}
+    case HTTP.call(n.address, "ping", [n.id]) do
+      {:ok, "pong"} -> {:ok, "Peer #{n.id} still up"}
+      _ -> {:error, "Peer #{n.id} down"}
     end
   end
 
@@ -28,7 +26,7 @@ defmodule Transport.Client do
     if resp == :ok do
       {:ok, msg}
     else
-      IO.inspect(msg)
+#      IO.inspect(msg)
       {:error, "#{id} successor search failed at #{n.id}"}
     end
   end
@@ -63,7 +61,7 @@ defmodule Transport.Client do
     end
   end
 
-  @spec notify_departure(CNode.t(), CNode.t(), CNode.t()) :: {:ok, any()} | {:error, String.t()}
+  @spec notify_departure(CNode.t(), CNode.t(), CNode.t(), CNode.t()) :: {:ok, any()} | {:error, String.t()}
   def notify_departure(dest, n, pred, succ) do
     {resp, msg} = HTTP.call(dest.address, "notify_departure", [n, pred, succ, dest.id])
     if resp == :ok do

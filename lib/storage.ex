@@ -48,10 +48,14 @@ defmodule Storage do
   @doc """
   Gets records that fall within a hashed key range
   """
-  @spec get_record_range(node_table, key, key) :: record
-  def get_record_range(table, from, to) do
-    :ets.foldl(fn({key, obj}, acc) when in_half_closed_interval?(generate_hash(key), from, to) -> [{key, obj} | acc]
-                                                                                        (_, acc) -> acc
+  @spec get_record_key_range(node_table, key, key) :: record
+  def get_record_key_range(table, from, to) do
+    :ets.foldl(fn({key, obj}, acc) ->
+                if in_half_closed_interval?(generate_hash(key), from, to) do
+                  [{key, obj} | acc]
+                else
+                  acc
+                end
     end, [], table)
   end
 
@@ -62,12 +66,4 @@ defmodule Storage do
   def delete_record_range(table, keys) do
     Enum.each(keys, fn k -> :ets.delete(table, k) end)
   end
-
-#  @spec in_range?(record, list) :: list
-#  defp in_range?(record, acc) do
-#    hKey = generate_hash(elem(record, 0))
-#    case in_half_closed_interval?() do
-#       -> 1
-#    end
-#  end
 end

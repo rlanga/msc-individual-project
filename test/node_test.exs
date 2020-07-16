@@ -42,12 +42,6 @@ defmodule NodeTest do
     assert is_list(ChordNode.module_info())
   end
 
-#
-#  test "number is not in closed interval" do
-#    assert ChordNode.in_closed_interval?(1, 1, 3) == false
-#  end
-
-
 #  test "new network is created", %{node: pid} do
 #    assert GenServer.call(pid, :create) == :ok
 ##    stop_supervised(pid)
@@ -81,12 +75,13 @@ defmodule NodeTest do
   test "node successor is node with larger ID", %{node: pid, node_details: cnode, port: port} do
     {new_node, nid} = start_node(port, "2")
     GenServer.call(new_node, {:join, cnode})
-    assert GenServer.call(pid, {:find_successor, cnode}) == %CNode{id: nid, address: cnode.address}
+    val = GenServer.call(pid, {:find_successor, cnode})
+    assert val == %CNode{id: nid, address: cnode.address}
   end
 
-  test "node successor is node with larger ID", %{node: pid, node_details: cnode, port: port} do
-    {new_node, nid} = start_node(port, "2")
-    GenServer.call(new_node, {:join, cnode})
-    assert GenServer.call(pid, {:find_successor, cnode}) == %CNode{id: nid, address: cnode.address}
-  end
+#  test "node successor is node with larger ID", %{node: pid, node_details: cnode, port: port} do
+#    {new_node, nid} = start_node(port, "2")
+#    GenServer.call(new_node, {:join, cnode})
+#    assert GenServer.call(pid, {:find_successor, cnode}) == %CNode{id: nid, address: cnode.address}
+#  end
 end

@@ -2,7 +2,7 @@ defmodule ChordNode do
   use GenServer
   import Utils
   alias Transport.Client, as: RemoteNode
-  use Storage
+  alias Storage
   @moduledoc false
 
 
@@ -16,7 +16,7 @@ defmodule ChordNode do
   """
   @impl true
   def init(args) do
-    node_name = String.to_atom("Node_#{state.node.id}")
+    node_name = String.to_atom("Node_#{args.id}")
     state = %NodeState{node: %CNode{id: args.id, address: args.addr}, storage_ref: Storage.init(node_name)}
 
     Process.register(self(), node_name)
@@ -32,7 +32,7 @@ defmodule ChordNode do
   @impl true
   def terminate(reason, state) do
     if state.finger[1] != state.node do
-      # transfer keys to successor
+      # transfer all keys to successor
       records = Storage.get_all(state.storage_ref)
       if length(records) > 0 do
         RemoteNode.put(state.finger[1], records)
@@ -49,7 +49,7 @@ defmodule ChordNode do
   def handle_call(:create, _from, state) do
     # predecessor is nil by default in the NodeState struct
     state = %{state | predecessor: state.node, successor: state.node}
-    {:reply, :ok, state}
+    {:reply, :ok, update_successor(state.node, state)}
   end
 
   @impl true
@@ -60,11 +60,13 @@ defmodule ChordNode do
       new_successor = if msg["id"] < state.node.id do
         state.node
       else
+        # tell remote that this node might be it's predecessor
+        if state.node.id < existing_node.id, do: RemoteNode.notify(existing_node, state.node)
         msg
       end
-      IO.inspect("new successor for #{state.node.id} #{new_successor["id"]}")
-      # tell remote that this node might be it's predecessor
-#      if existing_node.id < state.node.id, do: RemoteNode.notify(nd, state.node)
+#      IO.inspect("new successor for #{state.node.id} #{new_successor["id"]}")
+      # node is it's own successor so predecessor for now will be existing node
+      state = if new_successor["id"] == state.node.id, do: %{state | predecessor: existing_node}, else: state
       {:reply, :ok, update_successor(new_successor, state)}
     else
       {:reply, {status, msg}, state}
@@ -73,7 +75,13 @@ defmodule ChordNode do
 
   @impl true
   def handle_call({:find_successor, nd}, _from, state) do
-    IO.inspect("sdfjh #{state.node.id} #{nd.id}")
+#    IO.inspect("sdfjh #{state.node.id} #{nd.id}")
+#    IO.inspect("p s #{state.predecessor.id} #{state.finger[1].id}")
+    state = if state.predecessor == state.finger[1] and nd != state.node do
+            update_successor(nd, state)
+          else
+            state
+          end
     result = find_successor(nd, state)
     {:reply, result, state}
   end
@@ -85,14 +93,15 @@ defmodule ChordNode do
 
   @impl true
   def handle_call({:get, key}, _from, state) do
-    case generate_hash(key) do
-      state.node.id ->
+    k_hash = generate_hash(key)
+    cond do
+      k_hash == state.node.id ->
         {:reply, Storage.get(state.storage_ref, key), state}
-      state.predecessor.id when state.predecessor != nil ->
+      k_hash == state.predecessor.id ->
         res = RemoteNode.get(state.predecessor, key)
         {:reply, res, state}
-      k ->
-        succ = find_successor(k, state)
+      true ->
+        succ = find_successor(k_hash, state)
         res = RemoteNode.get(succ, key)
         {:reply, res, state}
     end
@@ -100,15 +109,16 @@ defmodule ChordNode do
 
   @impl true
   def handle_call({:put, record}, _from, state) do
-    case generate_hash(elem(record, 0)) do
-      state.node.id ->
+    k_hash = generate_hash(elem(record, 0))
+    cond do
+      k_hash == state.node.id ->
         Storage.put(state.storage_ref, record)
         {:reply, :ok, state}
-      state.predecessor.id when state.predecessor != nil ->
+      k_hash == state.predecessor.id ->
         RemoteNode.put(state.predecessor, record)
         {:reply, :ok, state}
-      k ->
-        succ = find_successor(k, state)
+      true ->
+        succ = find_successor(k_hash, state)
         RemoteNode.put(succ, record)
         {:reply, :ok, state}
     end
@@ -123,7 +133,7 @@ defmodule ChordNode do
   # Handles message from n as n thinks it might be our predecessor.
   @impl true
   def handle_cast({:notify, n}, state) do
-    IO.inspect("notif #{n.id} #{state.node.id}")
+#    IO.inspect("notif #{n.id} #{state.node.id}")
     state = if state.predecessor == nil or in_closed_interval?(n["id"], state.predecessor.id, state.node.id) do
         %{state | predecessor: n}
       else
@@ -134,11 +144,11 @@ defmodule ChordNode do
 
   @impl true
   def handle_cast({:notify_departure, n, pred, succ}, state) do
-    case n do
+    cond do
       state.node.id > n.id ->
         # departing node is predecessor
         {:noreply, %{state | predecessor: pred}}
-      _ ->
+      true ->
         # departing node is successor
         {:noreply, update_successor(succ, state)}
     end
@@ -148,6 +158,12 @@ defmodule ChordNode do
   def handle_info(:stabilize, state) do
     x = RemoteNode.predecessor(state.finger[1])
     state = if in_closed_interval?(x, state.id, state.finger[1]) do
+        # move records that might belong to the new successor
+        records = Storage.get_record_key_range(state.storage_ref, state.id, x)
+        if length(records) > 0 do
+          RemoteNode.put(x, records)
+          Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
+        end
         update_successor(x, state)
       else
         state
@@ -184,20 +200,18 @@ defmodule ChordNode do
 #  end
 
   defp find_successor(nd, state) do
-    IO.inspect("#{state.node.id} #{state.finger[1].id}")
+#    IO.inspect("#{state.node.id} #{state.finger[1].id} #{nd.id}")
     cond do
       in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
-        IO.inspect("yesyes")
         state.finger[1]
       nd < state.node.id ->
-        IO.inspect("yesyes")
         state.finger[1]
       true ->
         n = closest_preceding_node(nd.id, state)
 
         # This prevents a remote call looping back
         if n.id == state.node.id do
-          nd
+          state.finger[1]
         else
           RemoteNode.find_successor(n, nd)
         end

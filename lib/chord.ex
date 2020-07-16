@@ -3,6 +3,15 @@ defmodule Chord do
   Documentation for `Chord`.
   This is a proof-of-concept implementation of the Chord protocol using Elixir
   """
+  use Application
+
+  def start(_type, args) do
+    server_port = Utils.generate_port_number()
+#    cnode = %{id: Enum.random(1..10_000), start: {ChordNode, :start_link, [%{id: nid, addr: addr}]}}
+    children = [JSONRPC2.Servers.HTTP.child_spec(Transport.Server, port: server_port)]
+    Supervisor.start_link(children, strategy: :one_for_one)
+    IO.puts("Chord server started at http://localhost:#{server_port}")
+  end
 
   @doc """
   Set up a new Chord network.

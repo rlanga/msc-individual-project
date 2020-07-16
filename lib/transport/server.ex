@@ -3,7 +3,7 @@ defmodule Transport.Server do
   use JSONRPC2.Server.Handler
 
   def handle_request("find_successor", [nd, destination_node]) do
-    IO.inspect("inserv #{destination_node}")
+#    IO.inspect("inserv #{destination_node}")
     GenServer.call(String.to_atom("Node_#{destination_node}"), {:find_successor, %CNode{id: nd["id"], address: nd["address"]}})
   end
 
@@ -13,7 +13,10 @@ defmodule Transport.Server do
   end
 
   def handle_request("ping", [destination_node]) do
-    "pong"
+    case GenServer.whereis(String.to_atom("Node_#{destination_node}")) do
+      nil -> "node down"
+      _ -> "pong"
+    end
   end
 
   def handle_request("predecessor", [destination_node]) do
