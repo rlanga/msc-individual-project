@@ -1,5 +1,6 @@
 defmodule ChordNode do
   use GenServer
+  require Logger
   import Utils
   alias Transport.Client, as: RemoteNode
   alias Storage
@@ -20,17 +21,16 @@ defmodule ChordNode do
     state = %NodeState{node: %CNode{id: args.id, address: args.addr}, storage_ref: Storage.init(node_name)}
 
     Process.register(self(), node_name)
-#    transport_spec = JSONRPC2.Servers.HTTP.child_spec(:http, Transport.Server, [port: args.port])
-#    Supervisor.start_link(transport_spec, strategy: :one_for_one)
 #    StateAgent.put(:chord_node_ref, self())
 
     # Schedule stabilization task to be done later on
     schedule_stabilize(state.stabilization_interval)
+    Logger.info("Node #{args.id} initialised")
     {:ok, state}
   end
 
   @impl true
-  def terminate(reason, state) do
+  def terminate(_reason, state) do
     if state.finger[1] != state.node do
       # transfer all keys to successor
       records = Storage.get_all(state.storage_ref)
@@ -49,27 +49,32 @@ defmodule ChordNode do
   def handle_call(:create, _from, state) do
     # predecessor is nil by default in the NodeState struct
     state = %{state | predecessor: state.node, successor: state.node}
+    Logger.info("New chord network created!")
     {:reply, :ok, update_successor(state.node, state)}
   end
 
   @impl true
   def handle_call({:join, existing_node}, _from, state) do
     # predecessor starts as nil by default when NodeState struct is initialised
-    {status, msg} = RemoteNode.find_successor(existing_node, state.node)
-    if status == :ok do
-      new_successor = if msg["id"] < state.node.id do
-        state.node
-      else
-        # tell remote that this node might be it's predecessor
-        if state.node.id < existing_node.id, do: RemoteNode.notify(existing_node, state.node)
-        msg
-      end
-#      IO.inspect("new successor for #{state.node.id} #{new_successor["id"]}")
-      # node is it's own successor so predecessor for now will be existing node
-      state = if new_successor["id"] == state.node.id, do: %{state | predecessor: existing_node}, else: state
-      {:reply, :ok, update_successor(new_successor, state)}
-    else
-      {:reply, {status, msg}, state}
+    case RemoteNode.find_successor(existing_node, state.node) do
+      {:error, c} ->
+        Logger.error(c)
+        {:reply, {:error, c}, state}
+      s ->
+        new_successor = if s.id < state.node.id do
+          state.node
+        else
+          # tell remote that this node might be it's predecessor
+          if state.node.id < existing_node.id, do: RemoteNode.notify(existing_node, state.node)
+          s
+        end
+
+        #      IO.inspect("new successor for #{state.node.id} #{new_successor["id"]}")
+        # node is it's own successor so predecessor for now will be existing node
+        state = if new_successor.id == state.node.id, do: %{state | predecessor: existing_node}, else: state
+        Logger.info("Node #{state.node.id} successfully joined #{existing_node.id}")
+        Logger.debug("Node #{state.node.id} join complete: successor #{new_successor.id}")
+        {:reply, :ok, update_successor(new_successor, state)}
     end
   end
 
@@ -134,7 +139,9 @@ defmodule ChordNode do
   @impl true
   def handle_cast({:notify, n}, state) do
 #    IO.inspect("notif #{n.id} #{state.node.id}")
-    state = if state.predecessor == nil or in_closed_interval?(n["id"], state.predecessor.id, state.node.id) do
+    pred = if is_struct(n), do: n, else: %CNode{id: n["id"], address: n["address"]}
+    state = if state.predecessor == nil or in_closed_interval?(pred.id, state.predecessor.id, state.node.id) do
+        Logger.debug("Notify received: New predecessor is #{n.id}")
         %{state | predecessor: n}
       else
         state
@@ -144,6 +151,7 @@ defmodule ChordNode do
 
   @impl true
   def handle_cast({:notify_departure, n, pred, succ}, state) do
+    Logger.info("Node #{n.id} is departing")
     cond do
       state.node.id > n.id ->
         # departing node is predecessor
@@ -156,14 +164,24 @@ defmodule ChordNode do
 
   @impl true
   def handle_info(:stabilize, state) do
-    x = RemoteNode.predecessor(state.finger[1])
-    state = if in_closed_interval?(x, state.id, state.finger[1]) do
+    x = if state.finger[1] == state.node do
+        state.predecessor
+      else
+        case RemoteNode.predecessor(state.finger[1]) do
+          {:error, msg} ->
+            Logger.error(msg)
+            state.predecessor
+          pred -> pred
+        end
+      end
+    state = if in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
         # move records that might belong to the new successor
-        records = Storage.get_record_key_range(state.storage_ref, state.id, x)
+        records = Storage.get_record_key_range(state.storage_ref, state.node.id, x)
         if length(records) > 0 do
           RemoteNode.put(x, records)
           Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
         end
+        Logger.debug("Node #{state.node.id}'s new successor from stabilize is #{x.id}")
         update_successor(x, state)
       else
         state
@@ -213,7 +231,12 @@ defmodule ChordNode do
         if n.id == state.node.id do
           state.finger[1]
         else
-          RemoteNode.find_successor(n, nd)
+          case RemoteNode.find_successor(n, nd) do
+            {:error, msg} ->
+              Logger.error(msg)
+              state.finger[1]
+            s -> s
+          end
         end
     end
   end
@@ -226,8 +249,9 @@ defmodule ChordNode do
 #    |> Enum.reverse()
 #    |> Enum.find(state.node, fn f -> in_half_closed_interval?(f.id, state.node.id, id) end)
 #  end
-  defp closest_preceding_node(id, state, 0), do: state.node
-  defp closest_preceding_node(id, state, i \\ -1) do
+  def closest_preceding_node(id, state, i \\ -1)
+  def closest_preceding_node(_, state, 0), do: state.node
+  def closest_preceding_node(id, state, i) do
     i = if(i == -1, do: state.bit_size, else: i)
 
     if Map.has_key?(state.finger, i) and in_closed_interval?(state.finger[i].id, state.node.id, id) do
@@ -257,7 +281,7 @@ defmodule ChordNode do
         next
     end
     # finger[next] = find_successor
-    {status, resp} = find_successor(state.node.id + (:math.pow(2, next-1) |> round), state)
+    {_, resp} = find_successor(state.node.id + (:math.pow(2, next-1) |> round), state)
     updated_finger_table = %{state.finger | next => resp}
     %{state | finger: updated_finger_table, next_fix_finger: next}
   end
@@ -266,7 +290,7 @@ defmodule ChordNode do
   Update the successor node with the new node value
   n.b: successor == finger[1]
   """
-  defp update_successor(n, state) do
+  def update_successor(n, state) do
     res = if is_struct(n) do
       n
     else
@@ -278,7 +302,7 @@ defmodule ChordNode do
   @doc """
   Called periodically. checks whether predecessor has failed
   """
-  defp check_predecessor(state) do
+  def check_predecessor(state) do
     {result, _} = RemoteNode.ping(state.predecessor)
     if result != :ok do
       %{state | predecessor: nil}

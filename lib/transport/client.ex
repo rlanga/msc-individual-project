@@ -20,42 +20,42 @@ defmodule Transport.Client do
     end
   end
 
-  @spec find_successor(CNode.t(), integer) :: {:ok, CNode.t()} | {:error, String.t()}
+  @spec find_successor(CNode.t(), integer) :: CNode.t() | {:error, String.t()}
   def find_successor(n, id) do
     {resp, msg} = HTTP.call(n.address, "find_successor", [id, n.id])
     if resp == :ok do
-      {:ok, msg}
+      Utils.map2cnode(msg)
     else
 #      IO.inspect(msg)
       {:error, "#{id} successor search failed at #{n.id}"}
     end
   end
 
-  @spec predecessor(CNode.t()) :: {:ok, CNode.t()} | {:error, String.t()}
+  @spec predecessor(CNode.t()) :: CNode.t() | {:error, String.t()}
   def predecessor(n) do
     {resp, msg} = HTTP.call(n.address, "predecessor", [n.id])
     if resp == :ok do
-      {:ok, msg}
+      Utils.map2cnode(msg)
     else
       {:error, "predecessor search failed at #{n.id}"}
     end
   end
 
-  @spec get(CNode.t(), String.t()) :: {:ok, any()} | {:error, String.t()}
+  @spec get(CNode.t(), String.t()) :: any() | {:error, String.t()}
   def get(n, key) do
     {resp, msg} = HTTP.call(n.address, "get", [key, n.id])
     if resp == :ok do
-      {:ok, msg}
+      msg
     else
       {:error, "Get operation from #{n.id} failed"}
     end
   end
 
-  @spec put(CNode.t(), tuple) :: {:ok, any()} | {:error, String.t()}
+  @spec put(CNode.t(), tuple) :: any() | {:error, String.t()}
   def put(n, record) do
     {resp, msg} = HTTP.call(n.address, "put", [record, n.id])
     if resp == :ok do
-      {:ok, msg}
+      msg
     else
       {:error, "Put operation to #{n.id} failed"}
     end

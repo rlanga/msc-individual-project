@@ -38,4 +38,16 @@ defmodule Utils do
     :rand.uniform(65535 - 1025) + 1025
   end
 
+  @doc """
+  Converts a map object to a CNode struct
+  """
+  @spec map2cnode(map()) :: CNode.t()
+  def map2cnode(n) do
+    if is_struct(n) do
+      n
+    else
+      %CNode{id: n["id"], address: n["address"]}
+    end
+  end
+
 end
