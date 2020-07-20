@@ -8,6 +8,8 @@ NIF (Native Implemented Function)
 :oberver.start
 - observe BEAM state in iex
 
+** distillery **
+
 - send lookup message with original requesting node
 
 * initialisation decisions *
