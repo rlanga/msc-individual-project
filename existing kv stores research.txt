@@ -20,6 +20,10 @@ define availability measure
         ** Gnutella [Chord, CAN]**
 - decentrilized search algorithm
 - searches are flooded across peers with a limited scope.
+- on startup, client must find at least one other node. (using existing list shipped with software, caches that are existing nodes). Client connects to nodes from shipped list and web cache list till quota is reached. Caching addresses not tried and deleting those that failed
+- to search, user device sends request to every connected node.
+	- in earlier versions, the number of connected nodes was average 5 meaning nodes had to forward requests up to a maximum of 7 hops. However since v0.6, the structure changed to leaf/ultra nodes with leaf nodes connected to a few ultra nodes and the ultra nodes having a high degree of connectivity with other utlras (32+)
+	- leaf nodes would send their Query Routing Table (list of keyword hashes) to teh ultrapeer which the ultrapeer merges with its own and exchanges with neighbouring ultrpeers
 	- upon receiving query, peer returns a list of all content matching the query
 - The load on each node grows linearly with the total number of queries, which in turn grows with system size, this approach is clearly not scalable
 
