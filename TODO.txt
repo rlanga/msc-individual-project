@@ -1,0 +1,9 @@
+Research on how to simulate the Chord application
+    - Maybe run separate instances of the entire library
+    - Modify library to simulate nodes within Elixir; without JSON-RPC calls
+
+create node registry for use in simulation mode
+    - fetch node process IDs
+    - stop a node process (gracefully/forced)
+
+figure out how to pass config.exs file into simulation runs
