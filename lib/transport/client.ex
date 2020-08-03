@@ -1,5 +1,7 @@
 defmodule Transport.Client do
-  @moduledoc false
+  @moduledoc """
+  Transport layer used to communicate with nodes in an external network
+  """
   alias JSONRPC2.Clients.HTTP
 
   @spec ping(CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
@@ -20,9 +22,9 @@ defmodule Transport.Client do
     end
   end
 
-  @spec find_successor(CNode.t(), integer) :: CNode.t() | {:error, String.t()}
-  def find_successor(n, id) do
-    {resp, msg} = HTTP.call(n.address, "find_successor", [id, n.id])
+  @spec find_successor(CNode.t(), integer(), integer()) :: CNode.t() | {:error, String.t()}
+  def find_successor(n, id, hops \\ 0) do
+    {resp, msg} = HTTP.call(n.address, "find_successor", [id, n.id, hops])
     if resp == :ok do
       Utils.map2cnode(msg)
     else

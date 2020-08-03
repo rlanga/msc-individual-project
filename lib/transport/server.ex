@@ -2,9 +2,9 @@ defmodule Transport.Server do
   @moduledoc false
   use JSONRPC2.Server.Handler
 
-  def handle_request("find_successor", [nd, destination_node]) do
+  def handle_request("find_successor", [nd, destination_node, hops]) do
 #    IO.inspect("inserv #{destination_node}")
-    GenServer.call(String.to_atom("Node_#{destination_node}"), {:find_successor, %CNode{id: nd["id"], address: nd["address"]}})
+    GenServer.call(String.to_atom("Node_#{destination_node}"), {:find_successor, %CNode{id: nd["id"], address: nd["address"]}, hops})
   end
 
   def handle_request("notify", [chord_node, destination_node]) do
@@ -20,7 +20,7 @@ defmodule Transport.Server do
   end
 
   def handle_request("predecessor", [destination_node]) do
-    GenServer.call(String.to_atom("Node_#{destination_node}"), {:predecessor})
+    GenServer.call(String.to_atom("Node_#{destination_node}"), :predecessor)
   end
 
   def handle_request("get", [key, destination_node]) do

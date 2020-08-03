@@ -62,20 +62,20 @@ defmodule NodeTest do
   end
 
   test "node successor is itself", %{node: pid, node_details: cnode} do
-    assert GenServer.call(pid, {:find_successor, cnode}) == cnode
+    assert GenServer.call(pid, {:find_successor, cnode, 0}) == cnode
   end
 
   test "node successor is itself if it\'s ID larger than other node", %{node_details: cnode, port: port} do
     {new_node, nid} = start_node(port, "2")
     cnode2 = %CNode{id: nid, address: cnode.address}
     GenServer.call(new_node, {:join, cnode})
-    assert GenServer.call(new_node, {:find_successor, cnode2}) == cnode2
+    assert GenServer.call(new_node, {:find_successor, cnode2, 0}) == cnode2
   end
 
   test "node successor is node with larger ID", %{node: pid, node_details: cnode, port: port} do
     {new_node, nid} = start_node(port, "2")
     GenServer.call(new_node, {:join, cnode})
-    val = GenServer.call(pid, {:find_successor, cnode})
+    val = GenServer.call(pid, {:find_successor, cnode, 0})
     assert val == %CNode{id: nid, address: cnode.address}
   end
 

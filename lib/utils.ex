@@ -50,4 +50,13 @@ defmodule Utils do
     end
   end
 
+  @doc """
+  Searches the process registry for a node's PID
+  """
+  @spec get_node_pid(integer()) :: pid() | nil
+  def get_node_pid(id) do
+    String.to_atom("Node_#{id}")
+    |> GenServer.whereis
+  end
+
 end
