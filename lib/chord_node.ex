@@ -2,13 +2,15 @@ defmodule ChordNode do
   use GenServer
   require Logger
   import Utils
-  alias Transport.Client, as: RemoteNode
+#  alias Transport.Client, as: RemoteNode
+  use Transport.Client.Importer
   alias Storage
-  @moduledoc false
-
+  @moduledoc """
+  This module contains code implementation of the pseudocode specification in the Chord paper
+  https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf
+  """
 
   def start_link(opts) do
-
     GenServer.start_link(__MODULE__, opts)
   end
 
@@ -30,18 +32,24 @@ defmodule ChordNode do
   end
 
   @impl true
-  def terminate(_reason, state) do
-    if state.finger[1] != state.node do
-      # transfer all keys to successor
-      records = Storage.get_all(state.storage_ref)
-      if length(records) > 0 do
-        RemoteNode.put(state.finger[1], records)
-        Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
-      end
-      RemoteNode.notify_departure(state.finger[1], state.node, state.predecessor, state.finger[1])
-    end
-    if state.predecessor != nil do
-      RemoteNode.notify_departure(state.predecessor, state.node, state.predecessor, state.finger[1])
+  def terminate(reason, state) do
+    case reason do
+      {:shutdown, :ungraceful} ->
+        String.to_atom("Node_#{state.node.id}") |> Process.unregister
+      _ ->
+        String.to_atom("Node_#{state.node.id}") |> Process.unregister
+        if state.finger[1] != state.node do
+          # transfer all keys to successor
+          records = Storage.get_all(state.storage_ref)
+          if length(records) > 0 do
+            RemoteNode.put(state.finger[1], records)
+            Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
+          end
+          RemoteNode.notify_departure(state.finger[1], state.node, state.predecessor, state.finger[1])
+        end
+        if state.predecessor != nil do
+          RemoteNode.notify_departure(state.predecessor, state.node, state.predecessor, state.finger[1])
+        end
     end
   end
 
@@ -79,7 +87,7 @@ defmodule ChordNode do
   end
 
   @impl true
-  def handle_call({:find_successor, nd}, _from, state) do
+  def handle_call({:find_successor, nd, hops}, _from, state) do
 #    IO.inspect("sdfjh #{state.node.id} #{nd.id}")
 #    IO.inspect("p s #{state.predecessor.id} #{state.finger[1].id}")
     state = if state.predecessor == state.finger[1] and nd != state.node do
@@ -87,12 +95,17 @@ defmodule ChordNode do
           else
             state
           end
-    result = find_successor(nd, state)
+    result = find_successor(nd, state, hops)
     {:reply, result, state}
   end
 
   @impl true
-  def handle_call({:predecessor}, _from, state) do
+  def handle_call({:lookup, key}, _from, state) do
+    # return the closest successor to the key in the finger table
+  end
+
+  @impl true
+  def handle_call(:predecessor, _from, state) do
     {:reply, state.predecessor, state}
   end
 
@@ -128,12 +141,6 @@ defmodule ChordNode do
         {:reply, :ok, state}
     end
   end
-
-#  def handle_call({:closest_preceding_finger, id}, _from, state) do
-#    res = n
-#    if Enum.member?(n+1..id-1, )
-#    {:reply, :ok, state}
-#  end
 
   # Handles message from n as n thinks it might be our predecessor.
   @impl true
@@ -217,12 +224,12 @@ defmodule ChordNode do
 #    end
 #  end
 
-  defp find_successor(nd, state) do
+  defp find_successor(nd, state, hops \\ 0) do
 #    IO.inspect("#{state.node.id} #{state.finger[1].id} #{nd.id}")
     cond do
       in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
         state.finger[1]
-      nd < state.node.id ->
+      nd.id < state.node.id ->
         state.finger[1]
       true ->
         n = closest_preceding_node(nd.id, state)
@@ -231,11 +238,13 @@ defmodule ChordNode do
         if n.id == state.node.id do
           state.finger[1]
         else
-          case RemoteNode.find_successor(n, nd) do
+          case RemoteNode.find_successor(n, nd, hops+1) do
             {:error, msg} ->
               Logger.error(msg)
               state.finger[1]
-            s -> s
+            s ->
+              Logger.info("successor lookup | hops: #{hops}")
+              s
           end
         end
     end
@@ -244,11 +253,6 @@ defmodule ChordNode do
   @doc """
   Implements function from Fig.5 in Chord paper
   """
-#  defp closest_preceding_node(id, state) do
-#    Map.keys(state.finger)
-#    |> Enum.reverse()
-#    |> Enum.find(state.node, fn f -> in_half_closed_interval?(f.id, state.node.id, id) end)
-#  end
   def closest_preceding_node(id, state, i \\ -1)
   def closest_preceding_node(_, state, 0), do: state.node
   def closest_preceding_node(id, state, i) do
