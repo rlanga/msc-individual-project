@@ -1,9 +1,18 @@
 Research on how to simulate the Chord application
     - Maybe run separate instances of the entire library
     - Modify library to simulate nodes within Elixir; without JSON-RPC calls
+* The Chord network will just be simulated using multiple Node processes
+* Created alternate transport layer logic to deal with internal inter-process calls
 
 create node registry for use in simulation mode
     - fetch node process IDs
     - stop a node process (gracefully/forced)
+* Created a Util function to map a node ID to a GenServer process ID
+* Created a custom Supervisor which can kill/stop a node process
 
 figure out how to pass config.exs file into simulation runs
+* Created default config.exs settings which can be overriden in simulation code
+
+figure out how to collect simulation logs
+    - Maybe use the logger backend to filter only lookup logs
+    - save all log outputs to a file and run analysis after

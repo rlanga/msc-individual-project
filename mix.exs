@@ -30,7 +30,8 @@ defmodule Chord.MixProject do
       {:plug, "~> 1.10"},
       {:cowboy, "~> 2.8"},
       {:plug_cowboy, "~> 2.3"},
-      {:hackney, "~> 1.16"}
+      {:hackney, "~> 1.16"},
+#      {:logger_file_backend, "~> 0.0.11"}
     ]
   end
 end

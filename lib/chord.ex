@@ -8,8 +8,8 @@ defmodule Chord do
   require Utils
 
   @impl true
-  def start(_type, args \\ %{}) do
-    if is_simulation?() do
+  def start(_type, _args \\ %{}) do
+    if get_config_value(:simulation, false) == true do
       start_simulation_mode()
     else
       start_normal_mode()
@@ -20,19 +20,9 @@ defmodule Chord do
     #    server_port = if Map.has_key?(args, :port), do: args.port, else: Utils.generate_port_number()
     #    addr = if Map.has_key?(args, :address), do: args.address, else: "localhost:#{server_port}"
     #    node_id = if Map.has_key?(args, :id), do: Utils.generate_hash(args.id), else: Utils.generate_hash(addr)
-    server_port = get_port_from_config()
-    addr = case get_address_from_config() do
-      nil ->
-        "localhost:#{server_port}"
-      val ->
-        val
-    end
-    node_id = case get_node_id_from_config() do
-      nil ->
-        Utils.generate_hash(addr)
-      id ->
-        id
-    end
+    server_port =  get_config_value(:port, Utils.generate_port_number())
+    addr = get_config_value(:address, "localhost:#{server_port}")
+    node_id = get_config_value(:id, Utils.generate_hash(addr))
 
     node_spec = %{id: Enum.random(1..10_000), start: {ChordNode, :start_link, [%{id: node_id, addr: addr}]}}
     agent_spec = {StateAgent, %{node_ref: String.to_atom("Node_#{node_id}")}}
@@ -50,12 +40,18 @@ defmodule Chord do
   end
 
   defp start_simulation_mode() do
-    network_size = get_network_size_from_config()
+    network_size = get_config_value(:network_size, 32)
     nodes = Enum.map(1..network_size, fn n ->
-      %{id: n, start: {ChordNode, :start_link, [%{id: Utils.generate_hash(n), addr: nil}]}}
+      %{id: n, start: {ChordNode, :start_link,
+                 [%{id: Utils.generate_hash(Integer.to_string(n)),
+                   addr: nil, fix_interval: get_config_value(:fix_finger_interval),
+                   pred_check_interval: get_config_value(:predecessor_check_interval),
+                   stabilize_interval: get_config_value(:stabilization_interval)}]}
+      }
     end)
 
-    supervisor_id = Supervisor.start_link(nodes, strategy: :one_for_one, name: Chord)
+#    supervisor_id = Supervisor.start_link(nodes, strategy: :one_for_one, name: Chord)
+    supervisor_id = Chord.Supervisor.start_link(nodes)
     Logger.info("Chord simulator started")
     supervisor_id
   end
@@ -100,58 +96,58 @@ defmodule Chord do
     |> GenServer.call({:find_successor, Utils.generate_hash(key)})
   end
 
-  defp get_config_value(key) do
-    Application.fetch_env(:chord, key)
+  defp get_config_value(key, default \\ nil) do
+    Application.get_env(:chord, key, default)
   end
 
-  defp get_address_from_config() do
-    get_config_value(:address)
-    |> case do
-         {:ok, val} ->
-           val
-         :error ->
-           nil
-       end
-  end
+#  defp get_address_from_config() do
+#    get_config_value(:address)
+#    |> case do
+#         {:ok, val} ->
+#           val
+#         :error ->
+#           nil
+#       end
+#  end
+#
+#  defp get_port_from_config() do
+#    get_config_value(:port)
+#    |> case do
+#         {:ok, val} ->
+#           val
+#         :error ->
+#           Utils.generate_port_number()
+#       end
+#  end
+#
+#  defp get_node_id_from_config() do
+#    get_config_value(:id)
+#    |> case do
+#         {:ok, val} ->
+#           val
+#         :error ->
+#           nil
+#       end
+#  end
 
-  defp get_port_from_config() do
-    get_config_value(:port)
-    |> case do
-         {:ok, val} ->
-           val
-         :error ->
-           Utils.generate_port_number()
-       end
-  end
+#  defp get_network_size_from_config() do
+#    get_config_value(:network_size)
+#    |> case do
+#         {:ok, val} ->
+#           val
+#         :error ->
+#           32
+#       end
+#  end
 
-  defp get_node_id_from_config() do
-    get_config_value(:id)
-    |> case do
-         {:ok, val} ->
-           val
-         :error ->
-           nil
-       end
-  end
-
-  defp get_network_size_from_config() do
-    get_config_value(:simulation_network_size)
-    |> case do
-         {:ok, val} ->
-           val
-         :error ->
-           32
-       end
-  end
-
-  defp is_simulation?() do
-    get_config_value(:simulation)
-    |> case do
-         {:ok, val} ->
-           val
-         :error ->
-           false
-       end
-  end
+#  defp is_simulation?() do
+#    get_config_value(:simulation)
+#    |> case do
+#         {:ok, val} ->
+#           val
+#         :error ->
+#           false
+#       end
+#  end
 
 end

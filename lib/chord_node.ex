@@ -21,6 +21,9 @@ defmodule ChordNode do
   def init(args) do
     node_name = String.to_atom("Node_#{args.id}")
     state = %NodeState{node: %CNode{id: args.id, address: args.addr}, storage_ref: Storage.init(node_name)}
+    state = %{state | finger_fix_interval: Map.get(args, :fix_interval, state.finger_fix_interval)}
+    state = %{state | predecessor_check_interval: Map.get(args, :pred_check_interval, state.predecessor_check_interval)}
+    state = %{state | stabilization_interval: Map.get(args, :stabilize_interval, state.stabilization_interval)}
 
     Process.register(self(), node_name)
 #    StateAgent.put(:chord_node_ref, self())
@@ -57,14 +60,14 @@ defmodule ChordNode do
   def handle_call(:create, _from, state) do
     # predecessor is nil by default in the NodeState struct
     state = %{state | predecessor: state.node, successor: state.node}
-    Logger.info("New chord network created!")
+    Logger.info("Node #{state.node.id} has created a network")
     {:reply, :ok, update_successor(state.node, state)}
   end
 
   @impl true
   def handle_call({:join, existing_node}, _from, state) do
     # predecessor starts as nil by default when NodeState struct is initialised
-    case RemoteNode.find_successor(existing_node, state.node) do
+    case RemoteNode.find_successor(existing_node, state.node, 0) do
       {:error, c} ->
         Logger.error(c)
         {:reply, {:error, c}, state}
@@ -81,7 +84,7 @@ defmodule ChordNode do
         # node is it's own successor so predecessor for now will be existing node
         state = if new_successor.id == state.node.id, do: %{state | predecessor: existing_node}, else: state
         Logger.info("Node #{state.node.id} successfully joined #{existing_node.id}")
-        Logger.debug("Node #{state.node.id} join complete: successor #{new_successor.id}")
+#        Logger.debug("Node #{state.node.id} join complete: successor #{new_successor.id}")
         {:reply, :ok, update_successor(new_successor, state)}
     end
   end
@@ -148,7 +151,7 @@ defmodule ChordNode do
 #    IO.inspect("notif #{n.id} #{state.node.id}")
     pred = if is_struct(n), do: n, else: %CNode{id: n["id"], address: n["address"]}
     state = if state.predecessor == nil or in_closed_interval?(pred.id, state.predecessor.id, state.node.id) do
-        Logger.debug("Notify received: New predecessor is #{n.id}")
+#        Logger.debug("Notify received: New predecessor is #{n.id}")
         %{state | predecessor: n}
       else
         state
