@@ -15,7 +15,7 @@ defmodule Chord.Supervisor do
     |> GenServer.stop({:shutdown, :ungraceful})
   end
 
-  def start_node(id) do
-    Supervisor.start_child(__MODULE__, 1)
-  end
+#  def start_node(id) do
+#    Supervisor.start_child(__MODULE__, 1)
+#  end
 end

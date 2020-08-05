@@ -66,4 +66,12 @@ defmodule Storage do
   def delete_record_range(table, keys) do
     Enum.each(keys, fn k -> :ets.delete(table, k) end)
   end
+
+  @doc """
+  Counts the number of records in the strorage
+  """
+  @spec record_count(node_table) :: integer()
+  def record_count(table) do
+    :ets.info(table, :size)
+  end
 end

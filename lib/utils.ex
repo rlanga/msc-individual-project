@@ -50,6 +50,11 @@ defmodule Utils do
     end
   end
 
+  @spec id_to_cnode(integer()) :: CNode.t()
+  def id_to_cnode(id) do
+    %CNode{id: id, address: nil}
+  end
+
   @doc """
   Searches the process registry for a node's PID
   """

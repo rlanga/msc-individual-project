@@ -106,8 +106,7 @@ RPC for the key, it just returns the stored value
 
         ** Chord **
 - a scalable protocol for lookup in a dynamic peer-to-peer system with frequent node arrivals and departures
-- Three features that distinguish Chord from many other peer-topeer lookup protocols are its simplicity, provable correctness, and
-provable performance
+- Three features that distinguish Chord from many other peer-topeer lookup protocols are its simplicity, provable correctness, and provable performance
 - given a node, maps a node IP to an id
 - Given a key, maps the key to a node
 - communication cost and state per node scales logarithmically

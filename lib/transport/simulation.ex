@@ -31,7 +31,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n.id)
     |> case do
       nil ->
-        {:error, "#{id} successor search failed at #{n.id}"}
+        {:error, "#{id.id} successor search failed at #{n.id}"}
       pid ->
         GenServer.call(pid, {:find_successor, id, hops})
     end

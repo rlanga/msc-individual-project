@@ -30,6 +30,7 @@ defmodule ChordNode do
 
     # Schedule stabilization task to be done later on
     schedule_stabilize(state.stabilization_interval)
+    schedule_fix_fingers(state.finger_fix_interval)
     Logger.info("Node #{args.id} initialised")
     {:ok, state}
   end
@@ -104,7 +105,8 @@ defmodule ChordNode do
 
   @impl true
   def handle_call({:lookup, key}, _from, state) do
-    # return the closest successor to the key in the finger table
+    result = Utils.id_to_cnode(key) |> find_successor(state, 0)
+    {:reply, result, state}
   end
 
   @impl true
@@ -130,19 +132,30 @@ defmodule ChordNode do
 
   @impl true
   def handle_call({:put, record}, _from, state) do
-    k_hash = generate_hash(elem(record, 0))
-    cond do
-      k_hash == state.node.id ->
-        Storage.put(state.storage_ref, record)
-        {:reply, :ok, state}
-      k_hash == state.predecessor.id ->
-        RemoteNode.put(state.predecessor, record)
-        {:reply, :ok, state}
-      true ->
-        succ = find_successor(k_hash, state)
-        RemoteNode.put(succ, record)
-        {:reply, :ok, state}
+    if is_list(record) do
+      Storage.put(state.storage_ref, record)
+    else
+      k_hash = generate_hash(elem(record, 0))
+      cond do
+        k_hash == state.node.id ->
+          Storage.put(state.storage_ref, record)
+        k_hash == state.predecessor.id ->
+          RemoteNode.put(state.predecessor, record)
+        true ->
+          succ = find_successor(Utils.id_to_cnode(k_hash), state)
+          if succ == state.node do
+            Storage.put(state.storage_ref, record)
+          else
+            RemoteNode.put(succ, record)
+          end
+      end
     end
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_call(:key_count, _from, state) do
+    {:reply, Storage.record_count(state.storage_ref), state}
   end
 
   # Handles message from n as n thinks it might be our predecessor.
@@ -174,39 +187,48 @@ defmodule ChordNode do
 
   @impl true
   def handle_info(:stabilize, state) do
-    x = if state.finger[1] == state.node do
-        state.predecessor
-      else
-        case RemoteNode.predecessor(state.finger[1]) do
-          {:error, msg} ->
-            Logger.error(msg)
-            state.predecessor
-          pred -> pred
+    if Application.get_env(:chord, :run_stabilizations, true) do
+      x = if state.finger[1] == state.node do
+          state.predecessor
+        else
+          case RemoteNode.predecessor(state.finger[1]) do
+            {:error, msg} ->
+              Logger.error(msg)
+              state.predecessor
+            pred -> pred
+          end
         end
+      state = if in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
+          # move records that might belong to the new successor
+          records = Storage.get_record_key_range(state.storage_ref, state.node.id, x)
+          if length(records) > 0 do
+            RemoteNode.put(x, records)
+            Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
+          end
+          Logger.debug("Node #{state.node.id}'s new successor from stabilize is #{x.id}")
+          update_successor(x, state)
+        else
+          state
       end
-    state = if in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
-        # move records that might belong to the new successor
-        records = Storage.get_record_key_range(state.storage_ref, state.node.id, x)
-        if length(records) > 0 do
-          RemoteNode.put(x, records)
-          Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
-        end
-        Logger.debug("Node #{state.node.id}'s new successor from stabilize is #{x.id}")
-        update_successor(x, state)
-      else
-        state
+      RemoteNode.notify(state.finger[1], state.node)
+      schedule_stabilize(state.stabilization_interval)
+      {:noreply, state}
+    else
+      schedule_stabilize(state.stabilization_interval)
+      {:noreply, state}
     end
-    RemoteNode.notify(state.finger[1], state.node)
-
-    schedule_stabilize(state.stabilization_interval)
-    {:noreply, state}
   end
 
   @impl true
   def handle_info(:fix_fingers, state) do
-    state = fix_fingers(state)
-    schedule_fix_fingers(state.finger_fix_interval)
-    {:noreply, state}
+    if Application.get_env(:chord, :run_stabilizations, true) do
+      state = fix_fingers(state)
+      schedule_fix_fingers(state.finger_fix_interval)
+      {:noreply, state}
+    else
+      schedule_fix_fingers(state.finger_fix_interval)
+      {:noreply, state}
+    end
   end
 
   @impl true
@@ -288,8 +310,9 @@ defmodule ChordNode do
         next
     end
     # finger[next] = find_successor
-    {_, resp} = find_successor(state.node.id + (:math.pow(2, next-1) |> round), state)
-    updated_finger_table = %{state.finger | next => resp}
+    finger_next = Utils.id_to_cnode(state.node.id + (:math.pow(2, next-1) |> round))
+    resp = find_successor(finger_next, state)
+    updated_finger_table = Map.put(state.finger, next, resp)
     %{state | finger: updated_finger_table, next_fix_finger: next}
   end
 
