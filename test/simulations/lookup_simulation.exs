@@ -1,5 +1,5 @@
 #! /usr/bin/env elixir
-# lookup_simulation.ex
+# test_simulations.ex
 
 defmodule LookupSimulation do
   @moduledoc """

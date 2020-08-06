@@ -1,0 +1,98 @@
+defmodule TestSimulations do
+  @moduledoc """
+    Simulates Chord lookups against a network size given as an input argument
+  """
+  require Logger
+
+  defp join_network(existing_node, nodes)
+  defp join_network(_, []), do: :ok
+#  defp join_network(existing_node, [new_node | tail]) do
+#    Utils.get_node_pid(new_node)
+#    |> GenServer.call({:join, %CNode{id: existing_node}})
+#    join_network(new_node, tail)
+#  end
+  defp join_network(nodes, [new_node | tail]) do
+    existing_node = get_random_node_id(nodes, new_node)
+    Utils.get_node_pid(new_node)
+    |> GenServer.call({:join, %CNode{id: existing_node}})
+    join_network(nodes, tail)
+  end
+
+  defp get_random_node_id(nodes, current \\ nil) do
+    res = Enum.random(nodes)
+    if res == current do
+      get_random_node_id(nodes, current)
+    else
+      res
+    end
+  end
+
+  defp bootstrap_network(size, interval_period) do
+    Application.put_env(:chord, :network_size, size)
+    Application.put_env(:chord, :fix_finger_interval, interval_period)
+    Application.put_env(:chord, :predecessor_check_interval, interval_period)
+    Application.put_env(:chord, :stabilization_interval, interval_period)
+    node_ids = Enum.map(1..size, fn n -> Integer.to_string(n)|> Utils.generate_hash() end)
+    Chord.start(:normal)
+    hd(node_ids)
+    |> Utils.get_node_pid()
+    |> GenServer.call(:create)
+
+    join_network(node_ids, node_ids)
+    node_ids
+  end
+
+  defp set_keys_into_network(node_ids, total \\ nil) do
+    number_of_keys = if total == nil, do: 100 * Enum.count(node_ids), else: total
+    records = Enum.map(1..number_of_keys, fn n -> {Integer.to_string(n), 1} end)
+    Enum.each(records, fn r ->
+      get_random_node_id(node_ids)
+      |> Utils.get_node_pid()
+      |> GenServer.call({:put, r})
+    end)
+    records
+  end
+
+  defp perform_random_lookups(node_ids, keys) do
+    Task.async_stream(node_ids, fn(n) ->
+      Enum.take_random(keys, 50)
+      |> Enum.each(fn k -> Utils.get_node_pid(n) |> GenServer.call({:lookup, elem(k, 0)}) end)
+    end, ordered: false)
+    |> Stream.run()
+  end
+
+  def test_path_length(args \\ %{}) do
+    k = Map.get(args, :k, 3)
+    size = :math.pow(2, k) |> round()
+    interval_period = Map.get(args, :interval, 5) * 1000
+#    Logger.configure_backend {LoggerFileBackend, :file_log}, path: "log/simulations/lookup_#{size}.log"
+    ids = bootstrap_network(size, interval_period)
+    Logger.info("...Waiting for network to stabilise...")
+    Process.sleep(k * 40000)
+    keys = set_keys_into_network(ids)
+    perform_random_lookups(ids, keys)
+  end
+
+  def test_load_balance(args \\ %{}) do
+    k = Map.get(args, :k, 4)
+    stabilize_wait_time = Map.get(args, :stabilize_wait_time, 5)
+    size = :math.pow(10, k) |> round
+    total_keys = Map.get(args, :key_count, nil)
+    interval_period = Map.get(args, :interval, 5) * 1000
+    ids = bootstrap_network(size, interval_period)
+    Logger.info("...Waiting for network to stabilise...")
+    Process.sleep(stabilize_wait_time * 1000)
+    set_keys_into_network(ids, total_keys)
+#    Logger.info("...Letting network load balance...")
+#    Process.sleep(stabilize_wait_time * 60 * 1000)
+    count_node_keys(ids)
+  end
+
+  defp count_node_keys(node_ids) do
+    Task.async_stream(node_ids, fn n ->
+      Utils.get_node_pid(n) |> GenServer.call(:key_count)
+    end)
+    |> Enum.map(fn {:ok, k} -> k end)
+    |> Enum.frequencies()
+  end
+end

@@ -120,7 +120,7 @@ defmodule ChordNode do
     cond do
       k_hash == state.node.id ->
         {:reply, Storage.get(state.storage_ref, key), state}
-      k_hash == state.predecessor.id ->
+      state.predecessor != nil and k_hash == state.predecessor.id ->
         res = RemoteNode.get(state.predecessor, key)
         {:reply, res, state}
       true ->
@@ -139,7 +139,7 @@ defmodule ChordNode do
       cond do
         k_hash == state.node.id ->
           Storage.put(state.storage_ref, record)
-        k_hash == state.predecessor.id ->
+        state.predecessor != nil and k_hash == state.predecessor.id ->
           RemoteNode.put(state.predecessor, record)
         true ->
           succ = find_successor(Utils.id_to_cnode(k_hash), state)
@@ -162,7 +162,7 @@ defmodule ChordNode do
   @impl true
   def handle_cast({:notify, n}, state) do
 #    IO.inspect("notif #{n.id} #{state.node.id}")
-    pred = if is_struct(n), do: n, else: %CNode{id: n["id"], address: n["address"]}
+    pred = Utils.map2cnode(n)
     state = if state.predecessor == nil or in_closed_interval?(pred.id, state.predecessor.id, state.node.id) do
 #        Logger.debug("Notify received: New predecessor is #{n.id}")
         %{state | predecessor: n}
@@ -201,9 +201,11 @@ defmodule ChordNode do
       state = if in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
           # move records that might belong to the new successor
           records = Storage.get_record_key_range(state.storage_ref, state.node.id, x)
+          Logger.debug(records)
           if length(records) > 0 do
             RemoteNode.put(x, records)
             Storage.delete_record_range(state.storage_ref, Enum.map(records, fn r -> elem(r, 0) end))
+            Logger.debug("Node #{state.node.id} transferred keys to #{x.id}")
           end
           Logger.debug("Node #{state.node.id}'s new successor from stabilize is #{x.id}")
           update_successor(x, state)
