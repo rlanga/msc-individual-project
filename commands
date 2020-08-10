@@ -1,0 +1,6 @@
+TestSimulations.test_path_length(%{k: 4, interval: 1, stabilize_wait_time: 5})
+TestSimulations.run_load_balance_simulation(%{key_count: 1000, interval: 1, stabilize_wait_time: 5})
+
+# optimal params:
+stabilize_wait_time: 40
+interval: 3

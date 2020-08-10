@@ -10,7 +10,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n.id)
     |> case do
       nil -> {:error, "Peer #{n.id} down"}
-       _ -> {:ok, "Peer #{n.id} still up"}
+      _ -> {:ok, "Peer #{n.id} still up"}
     end
   end
 
@@ -20,6 +20,7 @@ defmodule Transport.Simulation do
     |> case do
       nil ->
         {:error, "Failed to notify #{n.id}"}
+
       pid ->
         GenServer.cast(pid, {:notify, pred})
         {:ok, "Peer #{n.id} notified"}
@@ -32,6 +33,7 @@ defmodule Transport.Simulation do
     |> case do
       nil ->
         {:error, "#{id.id} successor search failed at #{n.id}"}
+
       pid ->
         GenServer.call(pid, {:find_successor, id, hops})
     end
@@ -41,44 +43,49 @@ defmodule Transport.Simulation do
   def predecessor(n) do
     Utils.get_node_pid(n.id)
     |> case do
-         nil ->
-           {:error, "predecessor search failed at #{n.id}"}
-         pid ->
-           GenServer.call(pid, :predecessor)
-       end
+      nil ->
+        {:error, "predecessor search failed at #{n.id}"}
+
+      pid ->
+        GenServer.call(pid, :predecessor)
+    end
   end
 
   @spec get(CNode.t(), String.t()) :: any() | {:error, String.t()}
   def get(n, key) do
     Utils.get_node_pid(n.id)
     |> case do
-         nil ->
-           {:error, "Get operation from #{n.id} failed"}
-         pid ->
-           GenServer.call(pid, {:get, key})
-       end
+      nil ->
+        {:error, "Get operation from #{n.id} failed"}
+
+      pid ->
+        GenServer.call(pid, {:get, key})
+    end
   end
 
   @spec put(CNode.t(), tuple) :: any() | {:error, String.t()}
   def put(n, record) do
     Utils.get_node_pid(n.id)
     |> case do
-         nil ->
-           {:error, "Put operation to #{n.id} failed"}
-         pid ->
-           GenServer.call(pid, {:put, record})
-       end
+      nil ->
+        {:error, "Put operation to #{n.id} failed"}
+
+      pid ->
+        GenServer.call(pid, {:put, record})
+    end
   end
 
-  @spec notify_departure(CNode.t(), CNode.t(), CNode.t(), CNode.t()) :: {:ok, any()} | {:error, String.t()}
+  @spec notify_departure(CNode.t(), CNode.t(), CNode.t(), CNode.t()) ::
+          {:ok, any()} | {:error, String.t()}
   def notify_departure(dest, n, pred, succ) do
     Utils.get_node_pid(dest.id)
     |> case do
-         nil ->
-           {:error, "Departure notification to #{dest.id} failed"}
-         pid ->
-           GenServer.cast(pid, {:notify_departure, n, pred, succ})
-           {:ok, "notified"}
-       end
+      nil ->
+        {:error, "Departure notification to #{dest.id} failed"}
+
+      pid ->
+        GenServer.cast(pid, {:notify_departure, n, pred, succ})
+        {:ok, "notified"}
+    end
   end
 end

@@ -3,12 +3,19 @@ defmodule Transport.Server do
   use JSONRPC2.Server.Handler
 
   def handle_request("find_successor", [nd, destination_node, hops]) do
-#    IO.inspect("inserv #{destination_node}")
-    GenServer.call(String.to_atom("Node_#{destination_node}"), {:find_successor, %CNode{id: nd["id"], address: nd["address"]}, hops})
+    #    IO.inspect("inserv #{destination_node}")
+    GenServer.call(
+      String.to_atom("Node_#{destination_node}"),
+      {:find_successor, %CNode{id: nd["id"], address: nd["address"]}, hops}
+    )
   end
 
   def handle_request("notify", [chord_node, destination_node]) do
-    GenServer.cast(String.to_atom("Node_#{destination_node}"), {:notify, %CNode{id: chord_node["id"], address: chord_node["address"]}})
+    GenServer.cast(
+      String.to_atom("Node_#{destination_node}"),
+      {:notify, %CNode{id: chord_node["id"], address: chord_node["address"]}}
+    )
+
     "notified"
   end
 

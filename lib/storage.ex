@@ -1,5 +1,6 @@
 defmodule Storage do
   import Utils
+
   @moduledoc """
   Wrapper functions to interact with the ETS storage layer of a node.
   """
@@ -50,13 +51,17 @@ defmodule Storage do
   """
   @spec get_record_key_range(node_table, key, key) :: record
   def get_record_key_range(table, from, to) do
-    :ets.foldl(fn({key, obj}, acc) ->
-                if in_half_closed_interval?(generate_hash(key), from, to) do
-                  [{key, obj} | acc]
-                else
-                  acc
-                end
-    end, [], table)
+    :ets.foldl(
+      fn {key, obj}, acc ->
+        if in_half_closed_interval?(generate_hash(key), from, to) do
+          [{key, obj} | acc]
+        else
+          acc
+        end
+      end,
+      [],
+      table
+    )
   end
 
   @doc """

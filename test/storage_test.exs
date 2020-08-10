@@ -35,6 +35,8 @@ defmodule StorageTest do
   test "get record range works", %{table: table} do
     values = [{"3", "value"}, {"5", "value2"}]
     Storage.put(table, values)
-    assert Storage.get_record_key_range(table, generate_hash("1"), generate_hash("5")) == Enum.reverse(values)
+
+    assert Storage.get_record_key_range(table, generate_hash("1"), generate_hash("5")) ==
+             Enum.reverse(values)
   end
 end

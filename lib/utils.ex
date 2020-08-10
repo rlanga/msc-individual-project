@@ -9,7 +9,7 @@ defmodule Utils do
   @spec generate_hash(String.t()) :: integer()
   def generate_hash(data) do
     :crypto.hash(:sha, data)
-    |> Base.encode16
+    |> Base.encode16()
     |> Integer.parse(16)
     |> elem(0)
   end
@@ -61,7 +61,6 @@ defmodule Utils do
   @spec get_node_pid(integer()) :: pid() | nil
   def get_node_pid(id) do
     String.to_atom("Node_#{id}")
-    |> GenServer.whereis
+    |> GenServer.whereis()
   end
-
 end
