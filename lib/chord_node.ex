@@ -21,6 +21,7 @@ defmodule ChordNode do
   @impl true
   def init(args) do
     node_name = String.to_atom("Node_#{args.id}")
+    Process.flag(:trap_exit, Map.get(args, :trap_exit, true))
 
     state = %NodeState{
       node: %CNode{id: args.id, address: args.addr},

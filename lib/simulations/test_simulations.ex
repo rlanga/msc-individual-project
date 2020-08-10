@@ -35,6 +35,7 @@ defmodule TestSimulations do
     Application.put_env(:chord, :fix_finger_interval, interval_period)
     Application.put_env(:chord, :predecessor_check_interval, interval_period)
     Application.put_env(:chord, :stabilization_interval, interval_period)
+    Application.put_env(:chord, :trap_exit, false)
     node_ids = Enum.map(1..size, fn n -> Integer.to_string(n) |> Utils.generate_hash() end)
     Chord.start(:normal)
 
@@ -119,20 +120,35 @@ defmodule TestSimulations do
     output_dir = "lib/simulations/load_balance_results.txt"
     File.touch(output_dir, System.os_time(:second))
 
-    File.write(
-      output_dir,
-      Enum.reduce(1..20, [], fn _, acc ->
-        acc ++
-          run_load_balance_simulation(%{
-            key_count: key_count,
-            interval: 3,
-            stabilize_wait_time: 40
-          })
-      end)
-      |> inspect(limit: :infinity)
-      |> Kernel.<>("\n"),
-      [:append]
-    )
+    #    File.write(
+    #      output_dir,
+    #      Enum.reduce(1..20, [], fn _, acc ->
+    #        acc ++
+    #          run_load_balance_simulation(%{
+    #            key_count: key_count,
+    #            interval: 3,
+    #            stabilize_wait_time: 40
+    #          })
+    #      end)
+    #      |> inspect(limit: :infinity)
+    #      |> Kernel.<>("\n"),
+    #      [:append]
+    #    )
+
+    Enum.each(1..20, fn _ ->
+      File.write(
+        output_dir,
+        {key_count,
+         run_load_balance_simulation(%{
+           key_count: key_count,
+           interval: 3,
+           stabilize_wait_time: 40
+         })}
+        |> inspect(limit: :infinity)
+        |> Kernel.<>("\n"),
+        [:append]
+      )
+    end)
 
     test_load_balance(key_count + 100_000)
   end

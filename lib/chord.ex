@@ -78,7 +78,8 @@ defmodule Chord do
                  addr: nil,
                  fix_interval: get_config_value(:fix_finger_interval),
                  pred_check_interval: get_config_value(:predecessor_check_interval),
-                 stabilize_interval: get_config_value(:stabilization_interval)
+                 stabilize_interval: get_config_value(:stabilization_interval),
+                 trap_exit: get_config_value(:trap_exit)
                }
              ]}
         }
