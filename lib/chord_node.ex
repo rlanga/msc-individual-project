@@ -54,46 +54,46 @@ defmodule ChordNode do
     {:ok, state}
   end
 
-#  @impl true
-#  def terminate(reason, state) do
-#    case reason do
-#      {:shutdown, :ungraceful} ->
-#        String.to_atom("Node_#{state.node.id}") |> Process.unregister()
-#
-#      _ ->
-#        String.to_atom("Node_#{state.node.id}") |> Process.unregister()
-#
-#        if state.finger[1] != state.node do
-#          # transfer all keys to successor
-#          records = Storage.get_all(state.storage_ref)
-#
-#          if length(records) > 0 do
-#            RemoteNode.put(state.finger[1], records)
-#
-#            Storage.delete_record_range(
-#              state.storage_ref,
-#              Enum.map(records, fn r -> elem(r, 0) end)
-#            )
-#          end
-#
-#          RemoteNode.notify_departure(
-#            state.finger[1],
-#            state.node,
-#            state.predecessor,
-#            state.finger[1]
-#          )
-#        end
-#
-#        if state.predecessor != nil do
-#          RemoteNode.notify_departure(
-#            state.predecessor,
-#            state.node,
-#            state.predecessor,
-#            state.finger[1]
-#          )
-#        end
-#    end
-#  end
+  #  @impl true
+  #  def terminate(reason, state) do
+  #    case reason do
+  #      {:shutdown, :ungraceful} ->
+  #        String.to_atom("Node_#{state.node.id}") |> Process.unregister()
+  #
+  #      _ ->
+  #        String.to_atom("Node_#{state.node.id}") |> Process.unregister()
+  #
+  #        if state.finger[1] != state.node do
+  #          # transfer all keys to successor
+  #          records = Storage.get_all(state.storage_ref)
+  #
+  #          if length(records) > 0 do
+  #            RemoteNode.put(state.finger[1], records)
+  #
+  #            Storage.delete_record_range(
+  #              state.storage_ref,
+  #              Enum.map(records, fn r -> elem(r, 0) end)
+  #            )
+  #          end
+  #
+  #          RemoteNode.notify_departure(
+  #            state.finger[1],
+  #            state.node,
+  #            state.predecessor,
+  #            state.finger[1]
+  #          )
+  #        end
+  #
+  #        if state.predecessor != nil do
+  #          RemoteNode.notify_departure(
+  #            state.predecessor,
+  #            state.node,
+  #            state.predecessor,
+  #            state.finger[1]
+  #          )
+  #        end
+  #    end
+  #  end
 
   @impl true
   def handle_call(:create, _from, state) do
@@ -255,7 +255,7 @@ defmodule ChordNode do
         else
           case RemoteNode.predecessor(state.finger[1]) do
             {:error, msg} ->
-              Logger.error(msg)
+#              Logger.error(msg)
               state.predecessor
 
             pred ->
@@ -264,7 +264,7 @@ defmodule ChordNode do
         end
 
       state =
-        if in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
+        if (x != nil and state.finger[1] != nil) and in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
           # move records that might belong to the new successor
           records = Storage.get_record_key_range(state.storage_ref, state.node.id, x)
           #          Logger.debug(records)
