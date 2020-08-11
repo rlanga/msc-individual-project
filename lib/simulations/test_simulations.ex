@@ -67,20 +67,20 @@ defmodule TestSimulations do
     Task.async_stream(
       node_ids,
       fn n ->
-        Enum.take_random(keys, 50)
+        Enum.take_random(keys, 20)
         |> Enum.map(fn k ->
           Utils.get_node_pid(n) |> GenServer.call({:lookup, elem(k, 0)}) |> elem(1)
         end)
       end,
       ordered: false
     )
-    #    |> Stream.run()
     |> Enum.map(fn {:ok, k} -> k end)
     |> List.flatten()
-    |> Enum.frequencies()
+
+    #    |> Enum.frequencies()
   end
 
-  def test_path_length(args \\ %{}) do
+  def run_path_length_simulation(args \\ %{}) do
     k = Map.get(args, :k, 3)
     stabilize_wait_time = Map.get(args, :stabilize_wait_time, 5)
     size = :math.pow(2, k) |> round()
@@ -91,7 +91,35 @@ defmodule TestSimulations do
     Logger.info("...Waiting for network to stabilise...")
     Process.sleep(stabilize_wait_time * 1000)
     keys = set_keys_into_network(ids, 100 * size)
-    perform_random_lookups(ids, keys)
+    results = perform_random_lookups(ids, keys)
+    Chord.stop()
+    results
+  end
+
+  def test_path_length(k \\ 3)
+
+  def test_path_length(k) when k > 10 do
+    Logger.info("***path length simulation done***")
+  end
+
+  def test_path_length(k) do
+    output_dir = "lib/simulations/path_length_results.txt"
+    File.touch(output_dir, System.os_time(:second))
+
+    File.write(
+      output_dir,
+      {k,
+       run_path_length_simulation(%{
+         k: k,
+         interval: 3,
+         stabilize_wait_time: 40
+       })}
+      |> inspect(limit: :infinity)
+      |> Kernel.<>("\n"),
+      [:append]
+    )
+
+    test_path_length(k + 1)
   end
 
   def run_load_balance_simulation(args \\ %{}) do

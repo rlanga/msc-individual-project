@@ -254,8 +254,8 @@ defmodule ChordNode do
           state.predecessor
         else
           case RemoteNode.predecessor(state.finger[1]) do
-            {:error, msg} ->
-#              Logger.error(msg)
+            {:error, _} ->
+              #              Logger.error(msg)
               state.predecessor
 
             pred ->
@@ -264,7 +264,8 @@ defmodule ChordNode do
         end
 
       state =
-        if (x != nil and state.finger[1] != nil) and in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
+        if x != nil and state.finger[1] != nil and
+             in_closed_interval?(x.id, state.node.id, state.finger[1].id) do
           # move records that might belong to the new successor
           records = Storage.get_record_key_range(state.storage_ref, state.node.id, x)
           #          Logger.debug(records)
