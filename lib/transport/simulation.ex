@@ -9,7 +9,7 @@ defmodule Transport.Simulation do
   def ping(n) do
     Utils.get_node_pid(n)
     |> case do
-      nil -> {:error, "Peer #{n} down"}
+      nil -> {:error, "Peer down"}
       _ -> {:ok, "Peer #{n.id} still up"}
     end
   end
@@ -19,7 +19,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "Failed to notify #{n}"}
+        {:error, "notify failed"}
 
       pid ->
         GenServer.cast(pid, {:notify, pred})
@@ -32,7 +32,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "#{id.id} successor search failed at #{n}"}
+        {:error, "#{id.id} successor search failed"}
 
       pid ->
         GenServer.call(pid, {:find_successor, id, hops})
@@ -44,7 +44,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "predecessor search failed at #{n}"}
+        {:error, "predecessor search failed"}
 
       pid ->
         GenServer.call(pid, :predecessor)
@@ -56,7 +56,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "Get operation from #{n} failed"}
+        {:error, "Get operation failed"}
 
       pid ->
         GenServer.call(pid, {:get, key})
@@ -68,7 +68,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "Put operation to #{n} failed"}
+        {:error, "Put operation failed"}
 
       pid ->
         GenServer.call(pid, {:put, record})
@@ -81,7 +81,7 @@ defmodule Transport.Simulation do
     Utils.get_node_pid(dest)
     |> case do
       nil ->
-        {:error, "Departure notification to #{dest} failed"}
+        {:error, "Departure notification failed"}
 
       pid ->
         GenServer.cast(pid, {:notify_departure, n, pred, succ})
