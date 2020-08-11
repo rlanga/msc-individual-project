@@ -7,19 +7,19 @@ defmodule Transport.Simulation do
 
   @spec ping(CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
   def ping(n) do
-    Utils.get_node_pid(n.id)
+    Utils.get_node_pid(n)
     |> case do
-      nil -> {:error, "Peer #{n.id} down"}
+      nil -> {:error, "Peer #{n} down"}
       _ -> {:ok, "Peer #{n.id} still up"}
     end
   end
 
   @spec notify(CNode.t(), CNode.t()) :: {:ok, String.t()} | {:error, String.t()}
   def notify(n, pred) do
-    Utils.get_node_pid(n.id)
+    Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "Failed to notify #{n.id}"}
+        {:error, "Failed to notify #{n}"}
 
       pid ->
         GenServer.cast(pid, {:notify, pred})
@@ -29,10 +29,10 @@ defmodule Transport.Simulation do
 
   @spec find_successor(CNode.t(), integer(), integer()) :: CNode.t() | {:error, String.t()}
   def find_successor(n, id, hops) do
-    Utils.get_node_pid(n.id)
+    Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "#{id.id} successor search failed at #{n.id}"}
+        {:error, "#{id.id} successor search failed at #{n}"}
 
       pid ->
         GenServer.call(pid, {:find_successor, id, hops})
@@ -41,10 +41,10 @@ defmodule Transport.Simulation do
 
   @spec predecessor(CNode.t()) :: CNode.t() | {:error, String.t()}
   def predecessor(n) do
-    Utils.get_node_pid(n.id)
+    Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "predecessor search failed at #{n.id}"}
+        {:error, "predecessor search failed at #{n}"}
 
       pid ->
         GenServer.call(pid, :predecessor)
@@ -53,10 +53,10 @@ defmodule Transport.Simulation do
 
   @spec get(CNode.t(), String.t()) :: any() | {:error, String.t()}
   def get(n, key) do
-    Utils.get_node_pid(n.id)
+    Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "Get operation from #{n.id} failed"}
+        {:error, "Get operation from #{n} failed"}
 
       pid ->
         GenServer.call(pid, {:get, key})
@@ -65,10 +65,10 @@ defmodule Transport.Simulation do
 
   @spec put(CNode.t(), tuple) :: any() | {:error, String.t()}
   def put(n, record) do
-    Utils.get_node_pid(n.id)
+    Utils.get_node_pid(n)
     |> case do
       nil ->
-        {:error, "Put operation to #{n.id} failed"}
+        {:error, "Put operation to #{n} failed"}
 
       pid ->
         GenServer.call(pid, {:put, record})
@@ -78,10 +78,10 @@ defmodule Transport.Simulation do
   @spec notify_departure(CNode.t(), CNode.t(), CNode.t(), CNode.t()) ::
           {:ok, any()} | {:error, String.t()}
   def notify_departure(dest, n, pred, succ) do
-    Utils.get_node_pid(dest.id)
+    Utils.get_node_pid(dest)
     |> case do
       nil ->
-        {:error, "Departure notification to #{dest.id} failed"}
+        {:error, "Departure notification to #{dest} failed"}
 
       pid ->
         GenServer.cast(pid, {:notify_departure, n, pred, succ})

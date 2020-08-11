@@ -58,9 +58,16 @@ defmodule Utils do
   @doc """
   Searches the process registry for a node's PID
   """
-  @spec get_node_pid(integer()) :: pid() | nil
-  def get_node_pid(id) do
-    String.to_atom("Node_#{id}")
-    |> GenServer.whereis()
+  @spec get_node_pid(CNode.t()) :: pid() | nil
+  def get_node_pid(n) do
+    n
+    |> case do
+      nil ->
+        nil
+
+      _ ->
+        String.to_atom("Node_#{n.id}")
+        |> GenServer.whereis()
+    end
   end
 end
