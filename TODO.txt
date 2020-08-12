@@ -23,3 +23,8 @@ Run load balancing test
 
 Create tests for path lengths similar to load balancing
     - the function will borrow elements from the load balancing test function
+* Test function was created
+
+Run test for path length lookups
+* Test as run and results file was generated.
+N.B: Due to hardware limitations, the test ran up  to 2^10 nodes compared to the paper's range of 2^14

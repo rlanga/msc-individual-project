@@ -328,7 +328,7 @@ defmodule ChordNode do
   defp find_successor(nd, state, hops \\ 0) do
     #    IO.inspect("#{state.node.id} #{state.finger[1].id} #{nd.id}")
     cond do
-      in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
+      state.finger[1] != nil and in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
         {state.finger[1], hops}
 
       nd.id < state.node.id ->
@@ -395,9 +395,13 @@ defmodule ChordNode do
 
     # finger[next] = find_successor
     finger_next = Utils.id_to_cnode(state.node.id + (:math.pow(2, next - 1) |> round))
-    {resp, _} = find_successor(finger_next, state)
-    updated_finger_table = Map.put(state.finger, next, resp)
-    %{state | finger: updated_finger_table, next_fix_finger: next}
+    if finger_next == nil do
+      %{state | next_fix_finger: next}
+    else
+      {resp, _} = find_successor(finger_next, state)
+      updated_finger_table = Map.put(state.finger, next, resp)
+      %{state | finger: updated_finger_table, next_fix_finger: next}
+    end
   end
 
   @doc """
