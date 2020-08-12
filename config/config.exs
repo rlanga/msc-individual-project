@@ -4,6 +4,9 @@ config :chord,
   simulation: true,
   network_size: 32
 
+config :logger,
+  level: :warn
+
 # config :logger,
 #       backends: [{LoggerFileBackend, :file_log}]
 #

@@ -108,7 +108,7 @@ defmodule ChordNode do
     # predecessor starts as nil by default when NodeState struct is initialised
     case RemoteNode.find_successor(existing_node, state.node, 0) do
       {:error, c} ->
-        Logger.error(c)
+#        Logger.error(c)
         {:reply, {:error, c}, state}
 
       {s, _} ->
@@ -342,8 +342,8 @@ defmodule ChordNode do
           {state.finger[1], hops}
         else
           case RemoteNode.find_successor(n, nd, hops + 1) do
-            {:error, msg} ->
-              Logger.error(msg)
+            {:error, _} ->
+#              Logger.error(msg)
               {state.finger[1], hops}
 
             {s, count} ->

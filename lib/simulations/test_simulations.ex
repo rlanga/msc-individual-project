@@ -48,7 +48,7 @@ defmodule TestSimulations do
   end
 
   defp set_keys_into_network(node_ids, total \\ nil) do
-    Logger.info("...Setting keys into network...")
+    Logger.debug("...Setting keys into network...")
     number_of_keys = if total == nil, do: 100 * Enum.count(node_ids), else: total
     records = Enum.map(1..number_of_keys, fn n -> {Integer.to_string(n), 1} end)
 
@@ -62,7 +62,7 @@ defmodule TestSimulations do
   end
 
   defp perform_random_lookups(node_ids, keys) do
-    Logger.info("...Performing random lookups...")
+    Logger.debug("...Performing random lookups...")
 
     Task.async_stream(
       node_ids,
@@ -88,7 +88,7 @@ defmodule TestSimulations do
 
     #    Logger.configure_backend {LoggerFileBackend, :file_log}, path: "log/simulations/lookup_#{size}.log"
     ids = bootstrap_network(size, interval_period)
-    Logger.info("...Waiting for network to stabilise...")
+    Logger.debug("...Waiting for network to stabilise...")
     Process.sleep(stabilize_wait_time * 1000)
     keys = set_keys_into_network(ids, 100 * size)
     results = perform_random_lookups(ids, keys)
@@ -129,7 +129,7 @@ defmodule TestSimulations do
     total_keys = Map.get(args, :key_count, nil)
     interval_period = Map.get(args, :interval, 3) * 1000
     ids = bootstrap_network(size, interval_period)
-    Logger.info("...Waiting for network to stabilise...")
+    Logger.debug("...Waiting for network to stabilise...")
     Process.sleep(stabilize_wait_time * 1000)
     set_keys_into_network(ids, total_keys)
     keys = count_node_keys(ids)
