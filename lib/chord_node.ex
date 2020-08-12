@@ -108,7 +108,7 @@ defmodule ChordNode do
     # predecessor starts as nil by default when NodeState struct is initialised
     case RemoteNode.find_successor(existing_node, state.node, 0) do
       {:error, c} ->
-#        Logger.error(c)
+        #        Logger.error(c)
         {:reply, {:error, c}, state}
 
       {s, _} ->
@@ -328,7 +328,8 @@ defmodule ChordNode do
   defp find_successor(nd, state, hops \\ 0) do
     #    IO.inspect("#{state.node.id} #{state.finger[1].id} #{nd.id}")
     cond do
-      state.finger[1] != nil and in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
+      state.finger[1] != nil and
+          in_half_closed_interval?(nd.id, state.node.id, state.finger[1].id) ->
         {state.finger[1], hops}
 
       nd.id < state.node.id ->
@@ -343,7 +344,7 @@ defmodule ChordNode do
         else
           case RemoteNode.find_successor(n, nd, hops + 1) do
             {:error, _} ->
-#              Logger.error(msg)
+              #              Logger.error(msg)
               {state.finger[1], hops}
 
             {s, count} ->
@@ -363,7 +364,7 @@ defmodule ChordNode do
   def closest_preceding_node(id, state, i) do
     i = if(i == -1, do: state.bit_size, else: i)
 
-    if Map.has_key?(state.finger, i) and
+    if Map.has_key?(state.finger, i) and state.finger[i] != nil and
          in_closed_interval?(state.finger[i].id, state.node.id, id) do
       state.finger[i]
     else
@@ -395,6 +396,7 @@ defmodule ChordNode do
 
     # finger[next] = find_successor
     finger_next = Utils.id_to_cnode(state.node.id + (:math.pow(2, next - 1) |> round))
+
     if finger_next == nil do
       %{state | next_fix_finger: next}
     else
