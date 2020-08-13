@@ -18,8 +18,13 @@ figure out how to collect simulation logs
     - save all log outputs to a file and run analysis after
 * Simulation results are going to be written to a file e.g. `load_balancing_results.txt`
 
+Create tests for load balance monitoring
+* Test function was created
+
 Run load balancing test
     - Run it on the Linux CIM server as it might take ~2hrs to run
+* After quite a bit of debugging, the test was run on the Linux CIM server  and results collected
+(Test run took longer than expected. ~13 hrs runtime)
 
 Create tests for path lengths similar to load balancing
     - the function will borrow elements from the load balancing test function
