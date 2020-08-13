@@ -1,0 +1,21 @@
+software engineering method (incremental model):
+- model is designed, implemented and tested incrementally till the product is finished
+
+- in this case, final vision was to implement a chord node with virtual node functionality
+- initial model was to first implement system to use a single node when started
+- additionally, the base protocol would be implemented then time permitting, extensions to the protocol as outlined in the paper would be added
+
+** requirements analysis **
+-These would be picked out from the Chord academic paper; first selecting the minimum number of functions required to have a working implementation of the protocol
+	- hashing (SHA-1)
+	- scalable key location (finger tables) (Fig.5)
+	- node create, join, stabilize
+- failure and replication functions would be implemented if time permitted
+	- transferring keys during voluntary node departures	
+	- successor list to improve lookup robustness
+
+
+** Professional issues **
+- Licensing:- are the p2p lookup schemes promoting piracy? e.g. Napster, Gnutella. (Look into current ones being used in that file sharing space)
+- Privacy:- the protocols essentially match an ID to a node address. With recent laws classifying IP addresses as personally identifiable info, this could be a privacy concern. Reason being that a rogue node might leak these addresses. Or they could be used to map to users who are pirating files. (look into legality of that)
+
