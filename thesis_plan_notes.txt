@@ -14,6 +14,11 @@ software engineering method (incremental model):
 	- transferring keys during voluntary node departures	
 	- successor list to improve lookup robustness
 
+** design **
+- system will be designed to function as a library that other apps can use
+- will have a top layer through which external applications can do lookup requests. Start/stop network.
+- took a layered approach to the software services. transport layer -> node (storage) -> Top layer
+- Advantage of this is that transport or storage layer implementations could be swapped which maintaining the same interfaces for the chord logic to interact with.
 
 ** Professional issues **
 - Licensing:- are the p2p lookup schemes promoting piracy? e.g. Napster, Gnutella. (Look into current ones being used in that file sharing space)

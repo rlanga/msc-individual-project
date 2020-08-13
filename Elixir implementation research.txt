@@ -43,6 +43,7 @@ NIF (Native Implemented Function)
 	- maybe use Agent to map server -> node
 	- Due to difficulty mapping an individual transport process to a node, A physical machine will have one transport process shared amongst 1-* node processes. The issue was a limitation in the JSONRPC2 library in that it doesn't have an option to pass some initial state to the server process.
 - GenServer calls will have to be non-blocking. So use GenServer.cast as a request waiting on other remote calls will block other incoming ones
+- There is no explicit support for interfaces so dynamic module imports have to be used. e.g. in transport layer
 
 
 
