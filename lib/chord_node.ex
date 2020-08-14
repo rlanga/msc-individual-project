@@ -16,7 +16,8 @@ defmodule ChordNode do
   end
 
   @doc """
-  Some code used in this function is adapted from https://github.com/arriqaaq/chord/blob/master/node.go
+  Some code used in this function is inspired by and adapted from:
+  https://github.com/arriqaaq/chord/blob/master/node.go
   """
   @impl true
   def init(args) do
@@ -216,7 +217,6 @@ defmodule ChordNode do
   # Handles message from n as n thinks it might be our predecessor.
   @impl true
   def handle_cast({:notify, n}, state) do
-    #    IO.inspect("notif #{n.id} #{state.node.id}")
     pred = Utils.map2cnode(n)
 
     state =

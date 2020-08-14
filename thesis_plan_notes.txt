@@ -20,6 +20,21 @@ software engineering method (incremental model):
 - took a layered approach to the software services. transport layer -> node (storage) -> Top layer
 - Advantage of this is that transport or storage layer implementations could be swapped which maintaining the same interfaces for the chord logic to interact with.
 
+** implementation **
+* OTP structure
+- explain what OTP is
+- top layer that starts supervised processes
+- nodes are genservers
+* data structures
+- representing finger table. Initially, had thought of literally translating from the paper. (start, interval, successor). But realised its pointless storing intervals
+- representing a node entry
+- dynamic transport layer imports
+* maintaining state
+- node state
+* transport layer
+- mapping nodes to processes. Initial idea was using an agent/registry. but as pids can change if a genserver is restarted, this wasn't feasible
+- assigned names to each node process and used GenServer.whereis to map the name to pid.
+
 ** Professional issues **
 - Licensing:- are the p2p lookup schemes promoting piracy? e.g. Napster, Gnutella. (Look into current ones being used in that file sharing space)
 - Privacy:- the protocols essentially match an ID to a node address. With recent laws classifying IP addresses as personally identifiable info, this could be a privacy concern. Reason being that a rogue node might leak these addresses. Or they could be used to map to users who are pirating files. (look into legality of that)

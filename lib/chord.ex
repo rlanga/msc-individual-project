@@ -16,7 +16,8 @@ defmodule Chord do
     end
   end
 
-  def stop() do
+  @impl true
+  def stop(_state) do
     if get_config_value(:simulation, false) == true do
       Logger.info("Chord simulator stopped")
       Chord.Supervisor.stop()
