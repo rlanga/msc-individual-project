@@ -35,7 +35,32 @@ software engineering method (incremental model):
 - mapping nodes to processes. Initial idea was using an agent/registry. but as pids can change if a genserver is restarted, this wasn't feasible
 - assigned names to each node process and used GenServer.whereis to map the name to pid.
 
+
+** future work **
+- extension methods
+  - successor lists
+  - notify old predecessor when a new one is found (sect. Va).
+  - improving reselience against network partitions (sect. VI)
+  - implementing extensions from other verions of the paper?
+- improving error handling. Especially when node object is nil.
+  - avoiding defensive programming as this is an anti-pattern in Elixir.
+  - a matter of getting better at Elixir programming and refactor code
+
 ** Professional issues **
 - Licensing:- are the p2p lookup schemes promoting piracy? e.g. Napster, Gnutella. (Look into current ones being used in that file sharing space)
 - Privacy:- the protocols essentially match an ID to a node address. With recent laws classifying IP addresses as personally identifiable info, this could be a privacy concern. Reason being that a rogue node might leak these addresses. Or they could be used to map to users who are pirating files. (look into legality of that)
 
+
+** self assessment **
+- how did it go
+
+- planning and executing in a project
+  - I have learnt not to be scared to set expectations when it comes to implementation. When reading the Chord paper, the pseudocode looked easy enough to write up but only after starting did I realise it would be more of a challenge. Because I don't have much experience with Elixir, implementing was a mix of learning about the nuances of the language and how best to implement. So the initial plan of doing the base protocol and all the extensions didn't work out.
+  - learning that its ok to have a possibly inefficient software and iterate on that. This was necessary given the short project timeline. Historically in my previous roles, I would strive for perfection which induced more workload stress that necessary when I could have distributed this development over time.
+
+- where to go next
+  - ideally get a job where I work on such distributed systems challenges. Might be tricky as most of the roles found thus far want someone already experience in large scale distributed system design. What that means, career-wise I might start off in a role not directly related but work my way up there.
+  - Elixir is a great language that I would love to work commercially with. But as with upcoming languages, the preference seems to be for more experienced devs with the assumption that they will train others later down the road.
+  - another alternative is open source contributions. I have recently started doing some for an Elixir project and has been a good way to build experience in that. I am also going to look for open source distributed system projects.
+
+All in all, it was a fun project to do. From digging deeper into peer to peer protocols to learning elixir. It was a perfect project with good enough depth for me to leverage a good variety of the language's technologies
