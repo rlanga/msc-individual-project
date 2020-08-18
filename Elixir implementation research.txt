@@ -49,6 +49,7 @@ NIF (Native Implemented Function)
 
         *** points of improvement ***
 - maybe use an agent to store node state instead of local state. In case a node process crashes, state won't be lost. (let it crash philosophy). although...bad state might be the reason for the crash...
+- separate key management from node logic. So that node crashes don't lead to loss of data (making let it crash easier). The only downside will be loss of stable finger table entries.
 
         *** testing ***
 - performance might not be as good as figures in paper as I have not implemented the 'successor list' modification
