@@ -50,6 +50,22 @@ software engineering method (incremental model):
 - Licensing:- are the p2p lookup schemes promoting piracy? e.g. Napster, Gnutella. (Look into current ones being used in that file sharing space)
 - Privacy:- the protocols essentially match an ID to a node address. With recent laws classifying IP addresses as personally identifiable info, this could be a privacy concern. Reason being that a rogue node might leak these addresses. Or they could be used to map to users who are pirating files. (look into legality of that)
 
+- we discussed early iterations of p2p protocols (napster, gnutella) and how they gained popularity in file sharing/piracy. led to shutdown of napster and limewire(Gnutella).
+- successor protocols have also found their way into the public file sharing space. Bittorrent is the most popular file sharing protocol. Several client software exist for it such as utorrent, bittorrent, transmission (comes pre-installed on Ubuntu distros)
+- two ways peer discovery happens:
+  - querying a dedicated tracker node. The tracker supplies info about peers serving a file. Peers "announce" themselves to a tracker when they have a file to share. [springer]
+  - queries other peer nodes for who has a file. Known as trackerless torrents. It utilizes Kademlia over UDP to maintain a DHT of peer contact info for "trackerless" torrents. [bitorrent.org]
+
+* What is being done to counter piracy
+- as the network is open, authorities or copyright agencies can attempt to identify copyrighted file sharers. Research done by [springer] on tracking file bittorrent file sharers suggests two methods of identitification.
+  - The first is requesting peer information for the copyrighted file using an info hash. INfo hash consists of a shared file's meta info. The IP addresses can then be extracted from peer info to identify users.
+  - The second is using the DHT protocol to get peers that have an info hash for a copyright file
+- sending warnings to all users identified pirating content proved ineffective
+  https://torrentfreak.com/uk-isps-stop-sending-copyright-infringement-notices-190719/
+  https://www.theregister.com/2019/07/20/creative_content_piracy/
+
+- Conclusion(?): While these protocols have given us greater scalability for file storage and accessibility. Developers have to be weary of activity they enable.
+
 
 ** self assessment **
 - how did it go
