@@ -65,6 +65,9 @@ software engineering method (incremental model):
   https://www.theregister.com/2019/07/20/creative_content_piracy/
 
 - Conclusion(?): While these protocols have given us greater scalability for file storage and accessibility. Developers have to be weary of activity they enable.
+- an additional food for thought: the existence of all these softwares is a sign that people demand more open access to content. Going against the current restrictive region-locked, monopolised control of content.
+  - They believed that piracy was a "service problem" created by "an industry that portrays innovation as a threat to their antique recipe to collect value",
+- maybe content providers could adopt these peer to peer models for content distribution while integrating a fair pricing model. It is evident that people don't mind paying for content. (music and video streaming). Addiitonally, it might benefit content providers in terms of infrastructure. less need to maintain CDNs. load balance amongst users.
 
 
 ** self assessment **
