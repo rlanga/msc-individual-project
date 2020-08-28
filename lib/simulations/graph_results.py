@@ -43,7 +43,8 @@ def path_length_pdf() -> None:
         for line in plr.readlines():
             k = line
         k = extract_tuple_values(k)[1]
-        plt.scatter(k, norm.pdf(k))
+        k.sort()
+        plt.plot(k, norm.pdf(k))
         plt.ylabel("PDF")
         plt.xlabel("Path length")
         plt.show()
@@ -74,7 +75,8 @@ def load_balance_pdf() -> None:
         # ax = plt.gca()
         # filtered_pdf = [x if x < 0.2 else 0 for x in norm.pdf(keys)]
         # print(max(filtered_pdf))
-        plt.scatter(keys, norm.pdf(keys))
+        keys.sort()
+        plt.plot(keys, norm.pdf(keys))
         # plt.yscale('log')
         # ymin, ymax = plt.ylim()
         # plt.ylim(0, 9 ** -131)
@@ -86,7 +88,7 @@ def load_balance_pdf() -> None:
 
 if __name__ == '__main__':
     # path_length_network_size()
-    # path_length_pdf()
-    load_balance_network_size()
+    path_length_pdf()
+    # load_balance_network_size()
     # load_balance_pdf()
 
