@@ -43,6 +43,7 @@ results
 * load balance
 - the key sets are falling into a small key range in the network
 - some nodes in the network are isolated
+- virtual nodes not being used to load balance is off.
 
 - random key function could be better. Assumption was that keys generated from sequence of numbers would be random enough. Maybe the key space from these is small.
 
