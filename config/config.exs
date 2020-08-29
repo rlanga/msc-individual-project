@@ -1,7 +1,7 @@
 import Config
 
 config :chord,
-  simulation: false,
+  simulation: true,
   network_size: 32
 
 # port: 12543,

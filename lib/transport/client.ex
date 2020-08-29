@@ -30,7 +30,7 @@ defmodule Transport.Client do
     if resp == :ok do
       Utils.map2cnode(msg)
     else
-      {:error, "#{id} successor search failed at #{n.id}"}
+      {:error, "#{id.id} successor search failed at #{n.id}"}
     end
   end
 

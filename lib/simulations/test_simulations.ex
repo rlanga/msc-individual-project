@@ -38,7 +38,7 @@ defmodule TestSimulations do
     Application.put_env(:chord, :stabilization_interval, interval_period)
     Application.put_env(:chord, :trap_exit, false)
     node_ids = Enum.map(1..size, fn n -> Integer.to_string(n) |> Utils.generate_hash() end)
-    Chord.start()
+    Chord.start(:simulation)
 
     hd(node_ids)
     |> Utils.get_node_pid()
@@ -81,7 +81,7 @@ defmodule TestSimulations do
     #    |> Enum.frequencies()
   end
 
-  def run_path_length_simulation(args \\ %{}) do
+  defp run_path_length_simulation(%{} = args) do
     k = Map.get(args, :k, 3)
     stabilize_wait_time = Map.get(args, :stabilize_wait_time, 5)
     size = :math.pow(2, k) |> round()
@@ -93,17 +93,25 @@ defmodule TestSimulations do
     Process.sleep(stabilize_wait_time * 1000)
     keys = set_keys_into_network(ids, 100 * size)
     results = perform_random_lookups(ids, keys)
-    Chord.stop()
+    Chord.stop([])
     results
   end
 
-  def test_path_length(k \\ 3)
+  @doc """
+  This function is run in iex to test the path lengths of queries in the Chord network. \n
+  Arguments for this function are:
+    - k: the K value to start at
+    - finish: the maximum K value to run tests against
+  When run without arguments, it will run tests for network size 2^K in range 3 to 10
+  """
+  @spec test_path_length(integer(), integer()) :: :ok
+  def test_path_length(k \\ 3, finish \\ 10)
 
-  def test_path_length(k) when k > 10 do
+  def test_path_length(k, finish) when k > finish do
     Logger.info("***path length simulation done***")
   end
 
-  def test_path_length(k) do
+  def test_path_length(k, finish) do
     output_dir = "lib/simulations/path_length_results.txt"
     File.touch(output_dir, System.os_time(:second))
 
@@ -120,10 +128,10 @@ defmodule TestSimulations do
       [:append]
     )
 
-    test_path_length(k + 1)
+    test_path_length(k + 1, finish)
   end
 
-  def run_load_balance_simulation(args \\ %{}) do
+  defp run_load_balance_simulation(%{} = args) do
     n = Map.get(args, :n, 4)
     stabilize_wait_time = Map.get(args, :stabilize_wait_time, 5)
     size = :math.pow(10, n) |> round
@@ -134,18 +142,26 @@ defmodule TestSimulations do
     Process.sleep(stabilize_wait_time * 1000)
     set_keys_into_network(ids, total_keys)
     keys = count_node_keys(ids)
-    Chord.stop()
+    Chord.stop([])
     keys
   end
 
-  def test_load_balance(key_count \\ 100_000)
+  @doc """
+  This function is run in iex to test the load balance performance of the Chord network. \n
+  Arguments for this function are:
+    - key_count: the network key total to start the test with
+    - max: the maximum network key total to run tests against
+    - increment: the interval by which to increase the key_count in the next test iteration
+  Without arguments, the function will run tests for total key counts in range 10^5 to 10^6 increasing by 10^5
+  """
+  @spec test_load_balance(integer(), integer(), integer()) :: :ok
+  def test_load_balance(key_count \\ 100_000, max \\ 1_000_000, increment \\ 100_000)
 
-  def test_load_balance(key_count) when key_count == 1_000_000 do
+  def test_load_balance(key_count, max, _) when key_count > max do
     Logger.info("***load balance simulation done***")
-    #    Enum.frequencies(result)
   end
 
-  def test_load_balance(key_count) do
+  def test_load_balance(key_count, max, increment) do
     output_dir = "lib/simulations/load_balance_results.txt"
     File.touch(output_dir, System.os_time(:second))
 
@@ -164,7 +180,7 @@ defmodule TestSimulations do
       )
     end)
 
-    test_load_balance(key_count + 100_000)
+    test_load_balance(key_count + increment, max, increment)
   end
 
   defp count_node_keys(node_ids) do

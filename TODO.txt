@@ -35,3 +35,5 @@ Run test for path length lookups
 N.B: Due to hardware limitations, the test ran up  to 2^10 nodes compared to the paper's range of 2^14
 
 Refactor test simulation functions to support smaller scale runs
+* Function have default values set to those from the Chord paper test descriptions
+* If run without arguments, the functions use the default values.
