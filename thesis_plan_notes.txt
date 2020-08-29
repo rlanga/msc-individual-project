@@ -36,6 +36,17 @@ software engineering method (incremental model):
 - assigned names to each node process and used GenServer.whereis to map the name to pid.
 
 
+** testing **
+description
+method
+results
+* load balance
+- the key sets are falling into a small key range in the network
+- some nodes in the network are isolated
+
+- random key function could be better. Assumption was that keys generated from sequence of numbers would be random enough. Maybe the key space from these is small.
+
+
 ** future work **
 - extension methods
   - successor lists
