@@ -128,10 +128,11 @@ defmodule Chord do
   @doc """
   Yields the IP address of the node responsible for the key
   """
-  @spec lookup(String.t()) :: String.t() | {:error, String.t()}
+  @spec lookup(String.t()) :: String.t()
   def lookup(key) do
     StateAgent.get(:node_ref)
     |> GenServer.call({:find_successor, Utils.generate_hash(key)})
+    |> Map.get(:address)
   end
 
   defp get_config_value(key, default \\ nil) do

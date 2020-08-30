@@ -98,20 +98,22 @@ defmodule TestSimulations do
   end
 
   @doc """
-  This function is run in iex to test the path lengths of queries in the Chord network. \n
+  This function tests the path lengths of queries in the Chord network.
+
   Arguments for this function are:
     - k: the K value to start at
-    - finish: the maximum K value to run tests against
+    - max: the maximum K value to run tests against
+
   When run without arguments, it will run tests for network size 2^K in range 3 to 10
   """
   @spec test_path_length(integer(), integer()) :: :ok
-  def test_path_length(k \\ 3, finish \\ 10)
+  def test_path_length(k \\ 3, max \\ 10)
 
-  def test_path_length(k, finish) when k > finish do
+  def test_path_length(k, max) when k > max do
     Logger.info("***path length simulation done***")
   end
 
-  def test_path_length(k, finish) do
+  def test_path_length(k, max) do
     output_dir = "lib/simulations/path_length_results.txt"
     File.touch(output_dir, System.os_time(:second))
 
@@ -128,7 +130,7 @@ defmodule TestSimulations do
       [:append]
     )
 
-    test_path_length(k + 1, finish)
+    test_path_length(k + 1, max)
   end
 
   defp run_load_balance_simulation(%{} = args) do
@@ -147,11 +149,13 @@ defmodule TestSimulations do
   end
 
   @doc """
-  This function is run in iex to test the load balance performance of the Chord network. \n
+  This function tests the load balance performance of the Chord network.
+
   Arguments for this function are:
     - key_count: the network key total to start the test with
     - max: the maximum network key total to run tests against
     - increment: the interval by which to increase the key_count in the next test iteration
+
   Without arguments, the function will run tests for total key counts in range 10^5 to 10^6 increasing by 10^5
   """
   @spec test_load_balance(integer(), integer(), integer()) :: :ok
